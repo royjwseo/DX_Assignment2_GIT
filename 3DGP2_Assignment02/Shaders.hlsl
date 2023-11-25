@@ -21,6 +21,12 @@ cbuffer cbGameObjectInfo : register(b2)
 
 };
 
+cbuffer cbFrameworkInfo : register(b3)
+{
+	float 		gfCurrentTime;
+	float		gfElapsedTime;
+
+};
 
 
 #include "Light.hlsl"
@@ -141,10 +147,18 @@ SamplerState gssClamp : register(s1);
 
 float4 PSSkyBox(VS_SKYBOX_CUBEMAP_OUTPUT input) : SV_TARGET
 {
-	float4 cColor = gtxtSkyCubeTexture[15].Sample(gssClamp, input.positionL);
+	float4 cColor;
 
-	return(cColor);
+// 시간 변수를 실수로 가정하고 1.5초 간격으로 텍스처를 변경합니다.
+float currentTime = gfCurrentTime * 1.5f;
+
+// 실수 시간 변수를 이용하여 텍스처를 변경합니다.
+int textureIndex = int(currentTime) % 16;
+cColor = gtxtSkyCubeTexture[textureIndex].Sample(gssClamp, input.positionL);
+
+return cColor;
 }
+
 
 
 

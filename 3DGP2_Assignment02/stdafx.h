@@ -58,10 +58,11 @@ using Microsoft::WRL::ComPtr;
 #define _WITH_CB_WORLD_MATRIX_DESCRIPTOR_TABLE
 
 
+#define PARAMETER_TIME_CONSTANTS	3
+#define PARAMETER_STANDARD_TEXTURE		4
+#define PARAMETER_SKYBOX_CUBE_TEXTURE	5
+#define PARAMETER_TERRAIN_TEXTURE	6
 
-#define PARAMETER_STANDARD_TEXTURE		3
-#define PARAMETER_SKYBOX_CUBE_TEXTURE	4
-#define PARAMETER_TERRAIN_TEXTURE	5
 
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "d3d12.lib")

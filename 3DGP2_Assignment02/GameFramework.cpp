@@ -514,6 +514,21 @@ void CGameFramework::MoveToNextFrame()
 	}
 }
 
+
+void CGameFramework::UpdateShaderVariables()
+{
+	float fCurrentTime = m_GameTimer.GetTotalTime();
+	float fElapsedTime = m_GameTimer.GetTimeElapsed();
+
+	
+
+	m_pd3dCommandList->SetGraphicsRoot32BitConstants(PARAMETER_TIME_CONSTANTS, 1, &fCurrentTime, 0);
+	m_pd3dCommandList->SetGraphicsRoot32BitConstants(PARAMETER_TIME_CONSTANTS, 1, &fElapsedTime, 1);
+	
+
+
+}
+
 //#define _WITH_PLAYER_TOP
 
 void CGameFramework::FrameAdvance()
@@ -558,7 +573,7 @@ void CGameFramework::FrameAdvance()
 
 	if (m_pScene)m_pScene->PrepareRender(m_pd3dCommandList);
 	
-
+	UpdateShaderVariables();
 	if (m_pScene) m_pScene->Render(m_pd3dCommandList, m_pCamera);
 
 #ifdef _WITH_PLAYER_TOP
