@@ -471,103 +471,212 @@ void CStandardMesh::Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubS
 	}
 }
 
-CHeightMapImage::CHeightMapImage(LPCTSTR pFileName, int nWidth, int nLength, XMFLOAT3 xmf3Scale)
+CRawFormatImage::CRawFormatImage(LPCTSTR pFileName, int nWidth, int nLength, bool bFlipY)
 {
 	m_nWidth = nWidth;
 	m_nLength = nLength;
-	m_xmf3Scale = xmf3Scale;
 
-	BYTE* pHeightMapPixels = new BYTE[m_nWidth * m_nLength];
+	BYTE* pRawImagePixels = new BYTE[m_nWidth * m_nLength];
 
 	HANDLE hFile = ::CreateFile(pFileName, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_ATTRIBUTE_READONLY, NULL);
 	DWORD dwBytesRead;
-	::ReadFile(hFile, pHeightMapPixels, (m_nWidth * m_nLength), &dwBytesRead, NULL);
+	::ReadFile(hFile, pRawImagePixels, (m_nWidth * m_nLength), &dwBytesRead, NULL);
 	::CloseHandle(hFile);
 
-	m_pHeightMapPixels = new BYTE[m_nWidth * m_nLength];
-	for (int y = 0; y < m_nLength; y++)
+	if (bFlipY)
 	{
-		for (int x = 0; x < m_nWidth; x++)
+		m_pRawImagePixels = new BYTE[m_nWidth * m_nLength];
+		for (int z = 0; z < m_nLength; z++)
 		{
-			m_pHeightMapPixels[x + ((m_nLength - 1 - y) * m_nWidth)] = pHeightMapPixels[x + (y * m_nWidth)];
+			for (int x = 0; x < m_nWidth; x++)
+			{
+				m_pRawImagePixels[x + ((m_nLength - 1 - z) * m_nWidth)] = pRawImagePixels[x + (z * m_nWidth)];
+			}
 		}
-	}
 
-	if (pHeightMapPixels) delete[] pHeightMapPixels;
+		if (pRawImagePixels) delete[] pRawImagePixels;
+	}
+	else
+	{
+		m_pRawImagePixels = pRawImagePixels;
+	}
+}
+
+CRawFormatImage::~CRawFormatImage()
+{
+	if (m_pRawImagePixels) delete[] m_pRawImagePixels;
+	m_pRawImagePixels = NULL;
+}
+
+CHeightMapImage::CHeightMapImage(LPCTSTR pFileName, int nWidth, int nLength) : CRawFormatImage(pFileName, nWidth, nLength, true)
+{
+	
 }
 
 CHeightMapImage::~CHeightMapImage()
 {
-	if (m_pHeightMapPixels) delete[] m_pHeightMapPixels;
-	m_pHeightMapPixels = NULL;
 }
 
-XMFLOAT3 CHeightMapImage::GetHeightMapNormal(int x, int z)
+
+
+#define _WITH_APPROXIMATE_OPPOSITE_CORNER
+
+XMFLOAT3 CHeightMapImage::GetHeightMapNormal(int x, int z, XMFLOAT3 xmf3Scale)
 {
 	if ((x < 0.0f) || (z < 0.0f) || (x >= m_nWidth) || (z >= m_nLength)) return(XMFLOAT3(0.0f, 1.0f, 0.0f));
 
 	int nHeightMapIndex = x + (z * m_nWidth);
 	int xHeightMapAdd = (x < (m_nWidth - 1)) ? 1 : -1;
 	int zHeightMapAdd = (z < (m_nLength - 1)) ? m_nWidth : -m_nWidth;
-	float y1 = (float)m_pHeightMapPixels[nHeightMapIndex] * m_xmf3Scale.y;
-	float y2 = (float)m_pHeightMapPixels[nHeightMapIndex + xHeightMapAdd] * m_xmf3Scale.y;
-	float y3 = (float)m_pHeightMapPixels[nHeightMapIndex + zHeightMapAdd] * m_xmf3Scale.y;
-	XMFLOAT3 xmf3Edge1 = XMFLOAT3(0.0f, y3 - y1, m_xmf3Scale.z);
-	XMFLOAT3 xmf3Edge2 = XMFLOAT3(m_xmf3Scale.x, y2 - y1, 0.0f);
+	float y1 = (float)m_pRawImagePixels[nHeightMapIndex] * xmf3Scale.y;
+	float y2 = (float)m_pRawImagePixels[nHeightMapIndex + xHeightMapAdd] * xmf3Scale.y;
+	float y3 = (float)m_pRawImagePixels[nHeightMapIndex + zHeightMapAdd] * xmf3Scale.y;
+	XMFLOAT3 xmf3Edge1 = XMFLOAT3(0.0f, y3 - y1, xmf3Scale.z);
+	XMFLOAT3 xmf3Edge2 = XMFLOAT3(xmf3Scale.x, y2 - y1, 0.0f);
 	XMFLOAT3 xmf3Normal = Vector3::CrossProduct(xmf3Edge1, xmf3Edge2, true);
 
 	return(xmf3Normal);
 }
 
-#define _WITH_APPROXIMATE_OPPOSITE_CORNER
 
-float CHeightMapImage::GetHeight(float fx, float fz, bool bReverseQuad)
+float CHeightMapImage::CubicInterpolate(float p0, float p1, float p2, float p3, float t)
 {
-	fx = fx / m_xmf3Scale.x;
-	fz = fz / m_xmf3Scale.z;
-	if ((fx < 0.0f) || (fz < 0.0f) || (fx >= m_nWidth) || (fz >= m_nLength)) return(0.0f);
+	float a = p3 - p2 - p0 + p1;
+	float b = p0 - p1 - a;
+	float c = p2 - p0;
+	float d = p1;
+
+	return a * t * t * t + b * t * t + c * t + d;
+}
+
+float CHeightMapImage::CubicInterpolate(float p0, float p1, float t)
+{
+	float a = p1 - p0;
+	return p0 + a * t * t * (3.0f - 2.0f * t);
+}
+
+
+
+//float CHeightMapImage::GetInterpolatedHeight(int x, int z, float xFractional, float zFractional, bool bReverseQuad)
+//{
+//	if ((x < 0) || (z < 0) || (x >= m_nWidth) || (z >= m_nLength)) return(0.0f);
+//
+//	float fBottomLeft = (float)m_pRawImagePixels[x + (z * m_nWidth)];
+//	float fBottomRight = (float)m_pRawImagePixels[(x + 1) + (z * m_nWidth)];
+//	float fTopLeft = (float)m_pRawImagePixels[x + ((z + 1) * m_nWidth)];
+//	float fTopRight = (float)m_pRawImagePixels[(x + 1) + ((z + 1) * m_nWidth)];
+//#ifdef _WITH_APPROXIMATE_OPPOSITE_CORNER
+//	if (bReverseQuad)
+//	{
+//		if (zFractional >= xFractional)
+//			fBottomRight = fBottomLeft + (fTopRight - fTopLeft);
+//		else
+//			fTopLeft = fTopRight + (fBottomLeft - fBottomRight);
+//	}
+//	else
+//	{
+//		if (zFractional < (1.0f - xFractional))
+//			fTopRight = fTopLeft + (fBottomRight - fBottomLeft);
+//		else
+//			fBottomLeft = fTopLeft + (fBottomRight - fTopRight);
+//	}
+//#endif
+//	float fTopHeight = fTopLeft * (1 - xFractional) + fTopRight * xFractional;
+//	float fBottomHeight = fBottomLeft * (1 - xFractional) + fBottomRight * xFractional;
+//	float fHeight = fBottomHeight * (1 - zFractional) + fTopHeight * zFractional;
+//
+//	return(fHeight);
+//}
+
+float CHeightMapImage::GetHeight(float fx, float fz, XMFLOAT3 xmf3Scale)
+{
+	fx /= xmf3Scale.x;
+	fz /= xmf3Scale.z;
 
 	int x = (int)fx;
 	int z = (int)fz;
-	float fxPercent = fx - x;
-	float fzPercent = fz - z;
+	float xFractional = fx - x;
+	float zFractional = fz - z;
 
-	float fBottomLeft = (float)m_pHeightMapPixels[x + (z * m_nWidth)];
-	float fBottomRight = (float)m_pHeightMapPixels[(x + 1) + (z * m_nWidth)];
-	float fTopLeft = (float)m_pHeightMapPixels[x + ((z + 1) * m_nWidth)];
-	float fTopRight = (float)m_pHeightMapPixels[(x + 1) + ((z + 1) * m_nWidth)];
-#ifdef _WITH_APPROXIMATE_OPPOSITE_CORNER
-	if (bReverseQuad)
-	{
-		if (fzPercent >= fxPercent)
-			fBottomRight = fBottomLeft + (fTopRight - fTopLeft);
-		else
-			fTopLeft = fTopRight + (fBottomLeft - fBottomRight);
-	}
-	else
-	{
-		if (fzPercent < (1.0f - fxPercent))
-			fTopRight = fTopLeft + (fBottomRight - fBottomLeft);
-		else
-			fBottomLeft = fTopLeft + (fBottomRight - fTopRight);
-	}
-#endif
-	float fTopHeight = fTopLeft * (1 - fxPercent) + fTopRight * fxPercent;
-	float fBottomHeight = fBottomLeft * (1 - fxPercent) + fBottomRight * fxPercent;
-	float fHeight = fBottomHeight * (1 - fzPercent) + fTopHeight * fzPercent;
+	bool bReverseQuad = ((z % 2) != 0);
+	float fHeight = GetInterpolatedHeightExtended(x, z, xFractional, zFractional, bReverseQuad);
 
-	return(fHeight);
+	return(fHeight * xmf3Scale.y);
 }
+float CHeightMapImage::GetInterpolatedHeight(int x, int z, float xFractional, float zFractional, bool bReverseQuad)
+{
+	if ((x < 0) || (z < 0) || (x >= m_nWidth - 1) || (z >= m_nLength - 1)) return 0.0f;
+
+	int x0 = x;
+	int x1 = x + 1;
+	int z0 = z;
+	int z1 = z + 1;
+
+	float f00 = (float)m_pRawImagePixels[x0 + (z0 * m_nWidth)];
+	float f01 = (float)m_pRawImagePixels[x0 + (z1 * m_nWidth)];
+	float f10 = (float)m_pRawImagePixels[x1 + (z0 * m_nWidth)];
+	float f11 = (float)m_pRawImagePixels[x1 + (z1 * m_nWidth)];
+
+	float f0 = CubicInterpolate(f00, f01, zFractional);
+	float f1 = CubicInterpolate(f10, f11, zFractional);
+
+	return CubicInterpolate(f0, f1, xFractional);
+}
+
+float CHeightMapImage::GetInterpolatedHeightExtended(int x, int z, float xFractional, float zFractional, bool bReverseQuad)
+{
+	if ((x < 1) || (z < 1) || (x >= m_nWidth - 2) || (z >= m_nLength - 2)) return 0.0f;
+
+	int x0 = x - 1;
+	int x1 = x;
+	int x2 = x + 1;
+	int x3 = x + 2;
+	int z0 = z - 1;
+	int z1 = z;
+	int z2 = z + 1;
+	int z3 = z + 2;
+
+	float fX0Z0 = (float)m_pRawImagePixels[x0 + (z0 * m_nWidth)];
+	float fX1Z0 = (float)m_pRawImagePixels[x1 + (z0 * m_nWidth)];
+	float fX2Z0 = (float)m_pRawImagePixels[x2 + (z0 * m_nWidth)];
+	float fX3Z0 = (float)m_pRawImagePixels[x3 + (z0 * m_nWidth)];
+
+	float fX0Z1 = (float)m_pRawImagePixels[x0 + (z1 * m_nWidth)];
+	float fX1Z1 = (float)m_pRawImagePixels[x1 + (z1 * m_nWidth)];
+	float fX2Z1 = (float)m_pRawImagePixels[x2 + (z1 * m_nWidth)];
+	float fX3Z1 = (float)m_pRawImagePixels[x3 + (z1 * m_nWidth)];
+
+	float fX0Z2 = (float)m_pRawImagePixels[x0 + (z2 * m_nWidth)];
+	float fX1Z2 = (float)m_pRawImagePixels[x1 + (z2 * m_nWidth)];
+	float fX2Z2 = (float)m_pRawImagePixels[x2 + (z2 * m_nWidth)];
+	float fX3Z2 = (float)m_pRawImagePixels[x3 + (z2 * m_nWidth)];
+
+	float fX0Z3 = (float)m_pRawImagePixels[x0 + (z3 * m_nWidth)];
+	float fX1Z3 = (float)m_pRawImagePixels[x1 + (z3 * m_nWidth)];
+	float fX2Z3 = (float)m_pRawImagePixels[x2 + (z3 * m_nWidth)];
+	float fX3Z3 = (float)m_pRawImagePixels[x3 + (z3 * m_nWidth)];
+
+	float f0 = CubicInterpolate(fX0Z0, fX1Z0, fX2Z0, fX3Z0, xFractional);
+	float f1 = CubicInterpolate(fX0Z1, fX1Z1, fX2Z1, fX3Z1, xFractional);
+	float f2 = CubicInterpolate(fX0Z2, fX1Z2, fX2Z2, fX3Z2, xFractional);
+	float f3 = CubicInterpolate(fX0Z3, fX1Z3, fX2Z3, fX3Z3, xFractional);
+
+	float fZ0 = CubicInterpolate(f0, f1, f2, f3, zFractional);
+
+	return fZ0;
+}
+
 
 CHeightMapGridMesh::CHeightMapGridMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, int xStart, int zStart, int nWidth, int nLength, XMFLOAT3 xmf3Scale, XMFLOAT4 xmf4Color, void* pContext) : CMesh(pd3dDevice, pd3dCommandList)
 {
-	m_nVertices = nWidth * nLength;
+
 	//	m_nStride = sizeof(CTexturedVertex);
 	m_nStride = sizeof(CDiffusedTexturedVertex);
 	m_nOffset = 0;
 	m_nSlot = 0;
-	m_d3dPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
 
+	m_d3dPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_25_CONTROL_POINT_PATCHLIST;
+	m_nVertices = 25;
 	m_nWidth = nWidth;
 	m_nLength = nLength;
 	m_xmf3Scale = xmf3Scale;
@@ -576,20 +685,22 @@ CHeightMapGridMesh::CHeightMapGridMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsC
 	CDiffusedTexturedVertex* pVertices = new CDiffusedTexturedVertex[m_nVertices];
 
 	CHeightMapImage* pHeightMapImage = (CHeightMapImage*)pContext;
-	int cxHeightMap = pHeightMapImage->GetHeightMapWidth();
-	int czHeightMap = pHeightMapImage->GetHeightMapLength();
+	int cxHeightMap = pHeightMapImage->GetRawImageWidth();
+	int czHeightMap = pHeightMapImage->GetRawImageLength();
 
 	float fHeight = 0.0f, fMinHeight = +FLT_MAX, fMaxHeight = -FLT_MAX;
-	for (int i = 0, z = zStart; z < (zStart + nLength); z++)
+
+	int nIncrease = 3; //(Block Size == 9) ? 2, (Block Size == 13) ? 3
+	for (int i = 0, z = (zStart + nLength - 1); z >= zStart; z -= nIncrease)
 	{
-		for (int x = xStart; x < (xStart + nWidth); x++, i++)
+		for (int x = xStart; x < (xStart + nWidth); x += nIncrease, i++)
 		{
-			fHeight = OnGetHeight(x, z, pContext);
-			pVertices[i].m_xmf3Position = XMFLOAT3((x * m_xmf3Scale.x), fHeight, (z * m_xmf3Scale.z));
-			pVertices[i].m_xmf4Diffuse = Vector4::Add(OnGetColor(x, z, pContext), xmf4Color);
+			float xPosition = x * m_xmf3Scale.x, zPosition = z * m_xmf3Scale.z;
+			fHeight = pHeightMapImage->GetHeight(xPosition, zPosition, m_xmf3Scale);
+			pVertices[i].m_xmf3Position = XMFLOAT3(xPosition, fHeight, zPosition);
+			pVertices[i].m_xmf4Diffuse = Vector4::Add(OnGetColor(int(x), int(z), pContext), xmf4Color);
 			pVertices[i].m_xmf2TexCoord = XMFLOAT2(float(x) / float(cxHeightMap - 1), float(czHeightMap - 1 - z) / float(czHeightMap - 1));
-			pVertices[i].m_xmf2TexCoord0= XMFLOAT2(float(x) / float(m_xmf3Scale.x * 0.5f), float(z) / float(m_xmf3Scale.z * 0.5f));
-			// Detail 텍스쳐로 경사로 늘어짐에따른 텍스쳐 디테일 보완시키는. 
+			pVertices[i].m_xmf2TexCoord0 = XMFLOAT2(float(x) / float(m_xmf3Scale.x * 0.5f), float(z) / float(m_xmf3Scale.z * 0.5f));
 			if (fHeight < fMinHeight) fMinHeight = fHeight;
 			if (fHeight > fMaxHeight) fMaxHeight = fHeight;
 		}
@@ -603,51 +714,6 @@ CHeightMapGridMesh::CHeightMapGridMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsC
 
 	delete[] pVertices;
 
-	m_nSubMeshes = 1;
-	m_pnSubSetIndices = new int[m_nSubMeshes];
-	m_ppnSubSetIndices = new UINT * [m_nSubMeshes];
-
-	m_ppd3dSubSetIndexBuffers = new ID3D12Resource * [m_nSubMeshes];
-	m_ppd3dSubSetIndexUploadBuffers = new ID3D12Resource * [m_nSubMeshes];
-	m_pd3dSubSetIndexBufferViews = new D3D12_INDEX_BUFFER_VIEW[m_nSubMeshes];
-
-	m_pnSubSetIndices[0] = ((nWidth * 2) * (nLength - 1)) + ((nLength - 1) - 1);
-	m_ppnSubSetIndices[0] = new UINT[m_pnSubSetIndices[0]];
-
-
-
-	for (int j = 0, z = 0; z < nLength - 1; z++)
-	{
-		if ((z % 2) == 0)
-		{
-			for (int x = 0; x < nWidth; x++)
-			{
-				if ((x == 0) && (z > 0))m_ppnSubSetIndices[0][j++] = (UINT)(x + (z * nWidth));
-				m_ppnSubSetIndices[0][j++] = (UINT)(x + (z * nWidth));
-				m_ppnSubSetIndices[0][j++] = (UINT)((x + (z * nWidth)) + nWidth);
-			}
-		}
-		else
-		{
-			for (int x = nWidth - 1; x >= 0; x--)
-			{
-				if (x == (nWidth - 1)) m_ppnSubSetIndices[0][j++] = (UINT)(x + (z * nWidth));
-				m_ppnSubSetIndices[0][j++] = (UINT)(x + (z * nWidth));
-				m_ppnSubSetIndices[0][j++] = (UINT)((x + (z * nWidth)) + nWidth);
-			}
-		}
-	}
-	/*m_ppd3dSubSetIndexBuffers = new ID3D12Resource * [1];
-	m_ppd3dSubSetIndexUploadBuffers = new ID3D12Resource * [1];
-	m_pd3dSubSetIndexBufferViews = new D3D12_INDEX_BUFFER_VIEW();*/
-	m_ppd3dSubSetIndexBuffers[0] = CreateBufferResource(pd3dDevice, pd3dCommandList, m_ppnSubSetIndices[0], sizeof(UINT) * m_pnSubSetIndices[0], D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_INDEX_BUFFER, &m_ppd3dSubSetIndexUploadBuffers[0]);
-	//m_pd3dIndexBuffer = CreateBufferResource(pd3dDevice, pd3dCommandList, pnIndices, sizeof(UINT) * m_nIndices, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_INDEX_BUFFER, &m_pd3dIndexUploadBuffer);
-
-	m_pd3dSubSetIndexBufferViews[0].BufferLocation = m_ppd3dSubSetIndexBuffers[0]->GetGPUVirtualAddress();
-	m_pd3dSubSetIndexBufferViews[0].Format = DXGI_FORMAT_R32_UINT;
-	m_pd3dSubSetIndexBufferViews[0].SizeInBytes = sizeof(UINT) * m_pnSubSetIndices[0];
-
-	//delete[] pnIndices;
 }
 
 CHeightMapGridMesh::~CHeightMapGridMesh()
@@ -656,31 +722,22 @@ CHeightMapGridMesh::~CHeightMapGridMesh()
 
 }
 
-float CHeightMapGridMesh::OnGetHeight(int x, int z, void* pContext)
-{
-	CHeightMapImage* pHeightMapImage = (CHeightMapImage*)pContext;
-	BYTE* pHeightMapPixels = pHeightMapImage->GetHeightMapPixels();
-	XMFLOAT3 xmf3Scale = pHeightMapImage->GetScale();
-	int nWidth = pHeightMapImage->GetHeightMapWidth();
-	float fHeight = pHeightMapPixels[x + (z * nWidth)] * xmf3Scale.y;
-	return(fHeight);
-}
 
 XMFLOAT4 CHeightMapGridMesh::OnGetColor(int x, int z, void* pContext)
 {
 	XMFLOAT3 xmf3LightDirection = XMFLOAT3(-1.0f, 1.0f, 1.0f);
 	xmf3LightDirection = Vector3::Normalize(xmf3LightDirection);
 	CHeightMapImage* pHeightMapImage = (CHeightMapImage*)pContext;
-	XMFLOAT3 xmf3Scale = pHeightMapImage->GetScale();
 	XMFLOAT4 xmf4IncidentLightColor(0.9f, 0.8f, 0.4f, 1.0f);
-	float fScale = Vector3::DotProduct(pHeightMapImage->GetHeightMapNormal(x, z), xmf3LightDirection);
-	fScale += Vector3::DotProduct(pHeightMapImage->GetHeightMapNormal(x + 1, z), xmf3LightDirection);
-	fScale += Vector3::DotProduct(pHeightMapImage->GetHeightMapNormal(x + 1, z + 1), xmf3LightDirection);
-	fScale += Vector3::DotProduct(pHeightMapImage->GetHeightMapNormal(x, z + 1), xmf3LightDirection);
+	float fScale = Vector3::DotProduct(pHeightMapImage->GetHeightMapNormal(x, z, m_xmf3Scale), xmf3LightDirection);
+	fScale += Vector3::DotProduct(pHeightMapImage->GetHeightMapNormal(x + 1, z, m_xmf3Scale), xmf3LightDirection);
+	fScale += Vector3::DotProduct(pHeightMapImage->GetHeightMapNormal(x + 1, z + 1, m_xmf3Scale), xmf3LightDirection);
+	fScale += Vector3::DotProduct(pHeightMapImage->GetHeightMapNormal(x, z + 1, m_xmf3Scale), xmf3LightDirection);
 	fScale = (fScale / 4.0f) + 0.05f;
 	if (fScale > 1.0f) fScale = 1.0f;
 	if (fScale < 0.25f) fScale = 0.25f;
 	XMFLOAT4 xmf4Color = Vector4::Multiply(fScale, xmf4IncidentLightColor);
+
 	return(xmf4Color);
 }
 

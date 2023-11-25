@@ -902,11 +902,26 @@ CSkyBox::CSkyBox(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dComman
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 
-	CTexture* pSkyBoxTexture = new CTexture(1, RESOURCE_TEXTURE_CUBE, 0, 1);
-	pSkyBoxTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"SkyBox/SkyBox_1.dds", RESOURCE_TEXTURE_CUBE, 0);
+	CTexture* pSkyBoxTexture = new CTexture(16, RESOURCE_TEXTURE_CUBE, 0, 1);
+	pSkyBoxTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"SkyBox/Sky1.dds", RESOURCE_TEXTURE_CUBE, 0);
+	pSkyBoxTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"SkyBox/Sky2.dds", RESOURCE_TEXTURE_CUBE, 1);
+	pSkyBoxTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"SkyBox/Sky3.dds", RESOURCE_TEXTURE_CUBE, 2);
+	pSkyBoxTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"SkyBox/Sky4.dds", RESOURCE_TEXTURE_CUBE, 3);
+	pSkyBoxTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"SkyBox/Sky5.dds", RESOURCE_TEXTURE_CUBE, 4);
+	pSkyBoxTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"SkyBox/Sky6.dds", RESOURCE_TEXTURE_CUBE, 5);
+	pSkyBoxTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"SkyBox/Sky7.dds", RESOURCE_TEXTURE_CUBE, 6);
+	pSkyBoxTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"SkyBox/Sky8.dds", RESOURCE_TEXTURE_CUBE, 7);
+	pSkyBoxTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"SkyBox/Sky9.dds", RESOURCE_TEXTURE_CUBE, 8);
+	pSkyBoxTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"SkyBox/Sky10.dds", RESOURCE_TEXTURE_CUBE, 9);
+	pSkyBoxTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"SkyBox/Sky11.dds", RESOURCE_TEXTURE_CUBE, 10);
+	pSkyBoxTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"SkyBox/Sky12.dds", RESOURCE_TEXTURE_CUBE, 11);
+	pSkyBoxTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"SkyBox/Sky13.dds", RESOURCE_TEXTURE_CUBE,12);
+	pSkyBoxTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"SkyBox/Sky14.dds", RESOURCE_TEXTURE_CUBE, 13);
+	pSkyBoxTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"SkyBox/Sky15.dds", RESOURCE_TEXTURE_CUBE, 14);
+	pSkyBoxTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"SkyBox/Sky16.dds", RESOURCE_TEXTURE_CUBE, 15);
 
 	CSkyBoxShader* pSkyBoxShader = new CSkyBoxShader();
-	pSkyBoxShader->CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
+	pSkyBoxShader->CreateShader(pd3dDevice, pd3dGraphicsRootSignature);
 	pSkyBoxShader->CreateShaderVariables(pd3dDevice, pd3dCommandList);
 
 	
@@ -944,7 +959,7 @@ CHeightMapTerrain::CHeightMapTerrain(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 
 	m_xmf3Scale = xmf3Scale;
 
-	m_pHeightMapImage = new CHeightMapImage(pFileName, nWidth, nLength, xmf3Scale);
+	m_pHeightMapImage = new CHeightMapImage(pFileName, nWidth, nLength);
 
 	long cxBlocks = (m_nWidth - 1) / cxQuadsPerBlock;
 	long czBlocks = (m_nLength - 1) / czQuadsPerBlock;
@@ -970,37 +985,42 @@ CHeightMapTerrain::CHeightMapTerrain(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 
 	//UINT ncbElementBytes = ((sizeof(CB_GAMEOBJECT_INFO) + 255) & ~255); //256의 배수
 
-	CTexture* pTerrainTexture = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1);
+	CTexture* pTerrainTexture = new CTexture(3, RESOURCE_TEXTURE2D, 0, 1);
 
-	pTerrainTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/Lava(Emissive).dds", RESOURCE_TEXTURE2D, 0);
+	//pTerrainTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/Lava(Emissive).dds", RESOURCE_TEXTURE2D, 0);
+	pTerrainTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/Lava(Diffuse).dds", RESOURCE_TEXTURE2D, 0);
+	pTerrainTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/Lava(Emissive).dds", RESOURCE_TEXTURE2D, 1);
+	pTerrainTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/HeightMap(Alpha).dds", RESOURCE_TEXTURE2D, 2);
 
-	CTexture* pTerrainTextureDetail = new CTexture(1, RESOURCE_TEXTURE2D, 0, 1);
-	pTerrainTextureDetail->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/Stone_material.dds", RESOURCE_TEXTURE2D, 0);
 
-	CTerrainShader* pTerrainShader = new CTerrainShader();
-	pTerrainShader->CreateShader(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature);
+
+	CTerrainTessellationShader* pTerrainShader = new CTerrainTessellationShader();
+	pTerrainShader->CreateShader(pd3dDevice, pd3dGraphicsRootSignature);
 	pTerrainShader->CreateShaderVariables(pd3dDevice, pd3dCommandList);
 
-	//서술자 힙을 생성하고 -> 그를 채울 뷰들을 만들고 -> 루트시그니쳐에 바인딩
-	
-	// 스카이박스 실습에서는 게임오브젝트를 32비트 상수로 하여 자원을 한비트마다 세세하게 설정가능. 낭비 자원 체크 안해도됨. 
-	// 터레인 실습에서는 게임오브젝트를 뷰로 하여 RangeType으로 나누어 또 세세하게 정해줌 ->공부ㅜ필요
+	/*CTerrainShader* pTerrainShader = new CTerrainShader();
+	pTerrainShader->CreateShader(pd3dDevice, pd3dGraphicsRootSignature);
+	pTerrainShader->CreateShaderVariables(pd3dDevice, pd3dCommandList);*/
 
-	//여기서 우리가 셰이더에 건내줄 상수버퍼뷰를 만든다.
+
+
 	CScene::CreateShaderResourceViews(pd3dDevice, pTerrainTexture, 0, PARAMETER_TERRAIN_TEXTURE);
-	CScene::CreateShaderResourceViews(pd3dDevice, pTerrainTextureDetail, 0, PARAMETER_TERRAIN_TEXTURE);
-	
+
 	CMaterial* pTerrainMaterial = new CMaterial();
 	pTerrainMaterial->SetShader(pTerrainShader);
 	pTerrainMaterial->SetTexture(pTerrainTexture);
 	SetMaterial(0, pTerrainMaterial);
 
-	CMaterial* pTerrainDetailMaterial = new CMaterial();
-	pTerrainDetailMaterial->SetShader(pTerrainShader);
-	pTerrainDetailMaterial->SetTexture(pTerrainTexture);
-	SetMaterial(1, pTerrainDetailMaterial);
+	
 
 	//SetShader(pTerrainShader);
+}
+
+float CHeightMapTerrain::GetHeight(float fx, float fz) //World Coordinates
+{
+	float fHeight = m_pHeightMapImage->GetHeight(fx, fz, m_xmf3Scale);
+
+	return(fHeight);
 }
 
 CHeightMapTerrain::~CHeightMapTerrain(void)
