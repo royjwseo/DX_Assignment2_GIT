@@ -29,6 +29,7 @@ public:
 
 public:
 	CVertex() { m_xmf3Position = XMFLOAT3(0.0f, 0.0f, 0.0f); }
+	CVertex(float x, float y, float z) { m_xmf3Position = XMFLOAT3(x, y, z); }
 	CVertex(XMFLOAT3 xmf3Position) { m_xmf3Position = xmf3Position; }
 	~CVertex() { }
 };
@@ -58,6 +59,29 @@ public:
 	CDiffusedTexturedVertex(XMFLOAT3 xmf3Position, XMFLOAT4 xmf4Diffuse = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f), XMFLOAT2 xmf2TexCoord = XMFLOAT2(0.0f, 0.0f), XMFLOAT2 xmf2TexCoord0 = XMFLOAT2(0.0f, 0.0f)) { m_xmf3Position = xmf3Position; m_xmf4Diffuse = xmf4Diffuse; m_xmf2TexCoord = xmf2TexCoord; m_xmf2TexCoord0 = xmf2TexCoord0;
 	}
 	~CDiffusedTexturedVertex() { }
+};
+class CTexturedVertex : public CVertex
+{
+public:
+	XMFLOAT2						m_xmf2TexCoord;
+
+public:
+	CTexturedVertex() { m_xmf3Position = XMFLOAT3(0.0f, 0.0f, 0.0f); m_xmf2TexCoord = XMFLOAT2(0.0f, 0.0f); }
+	CTexturedVertex(float x, float y, float z, XMFLOAT2 xmf2TexCoord) { m_xmf3Position = XMFLOAT3(x, y, z); m_xmf2TexCoord = xmf2TexCoord; }
+	CTexturedVertex(XMFLOAT3 xmf3Position, XMFLOAT2 xmf2TexCoord = XMFLOAT2(0.0f, 0.0f)) { m_xmf3Position = xmf3Position; m_xmf2TexCoord = xmf2TexCoord; }
+	~CTexturedVertex() { }
+};
+
+class CIlluminatedVertex : public CVertex
+{
+protected:
+	XMFLOAT3						m_xmf3Normal;
+
+public:
+	CIlluminatedVertex() { m_xmf3Position = XMFLOAT3(0.0f, 0.0f, 0.0f); m_xmf3Normal = XMFLOAT3(0.0f, 0.0f, 0.0f); }
+	CIlluminatedVertex(float x, float y, float z, XMFLOAT3 xmf3Normal = XMFLOAT3(0.0f, 0.0f, 0.0f)) { m_xmf3Position = XMFLOAT3(x, y, z); m_xmf3Normal = xmf3Normal; }
+	CIlluminatedVertex(XMFLOAT3 xmf3Position, XMFLOAT3 xmf3Normal = XMFLOAT3(0.0f, 0.0f, 0.0f)) { m_xmf3Position = xmf3Position; m_xmf3Normal = xmf3Normal; }
+	~CIlluminatedVertex() { }
 };
 
 class CMesh
@@ -98,7 +122,10 @@ protected:
 	int* m_pnSubSetIndices = NULL;
 	UINT** m_ppnSubSetIndices = NULL;
 
-
+	ID3D12Resource* m_pd3dVertexBuffer = NULL;
+	ID3D12Resource* m_pd3dVertexUploadBuffer = NULL;
+	D3D12_VERTEX_BUFFER_VIEW		m_d3dVertexBufferView;
+	
 
 	ID3D12Resource** m_ppd3dSubSetIndexBuffers = NULL;
 	ID3D12Resource** m_ppd3dSubSetIndexUploadBuffers = NULL;
@@ -114,6 +141,7 @@ public:
 
 	virtual void ReleaseUploadBuffers();
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubSet);
+	//virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList) {}
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -241,7 +269,29 @@ public:
 	virtual XMFLOAT4 OnGetColor(int x, int z, void* pContext);
 
 
+};
+
+class CMeshIlluminated : public CMesh
+{
+public:
+	CMeshIlluminated(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual ~CMeshIlluminated();
+
+public:
+	void CalculateTriangleListVertexNormals(XMFLOAT3* pxmf3Normals, XMFLOAT3* pxmf3Positions, int nVertices);
+	void CalculateTriangleListVertexNormals(XMFLOAT3* pxmf3Normals, XMFLOAT3* pxmf3Positions, UINT nVertices, UINT* pnIndices, UINT nIndices);
+	void CalculateTriangleStripVertexNormals(XMFLOAT3* pxmf3Normals, XMFLOAT3* pxmf3Positions, UINT nVertices, UINT* pnIndices, UINT nIndices);
+	void CalculateVertexNormals(XMFLOAT3* pxmf3Normals, XMFLOAT3* pxmf3Positions, int nVertices, UINT* pnIndices, int nIndices);
 
 
+};
 
+class CSphereMeshIlluminated : public CMeshIlluminated
+{
+public:
+	CSphereMeshIlluminated(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fRadius = 2.0f, UINT nSlices = 20, UINT nStacks = 20);
+	virtual ~CSphereMeshIlluminated();
+
+	public:
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, int subset);
 };

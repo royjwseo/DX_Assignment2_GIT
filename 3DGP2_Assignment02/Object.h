@@ -33,14 +33,11 @@ struct MATERIAL
 };
 struct CB_GAMEOBJECT_INFO
 {
-	XMFLOAT4X4						m_xmf4x4World;
-	MATERIAL						m_material;
-
 	XMFLOAT4X4						m_xmf4x4Texture;
-	XMINT2							m_xmi2TextureTiling;
-	XMFLOAT2						m_xmf2TextureOffset;
+	
 };
 class CGameObject;
+class CScene;
 
 class CTexture
 {
@@ -83,7 +80,7 @@ public:
 	void LoadTextureFromDDSFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, wchar_t* pszFileName, UINT nResourceType, UINT nIndex);
 	void LoadBuffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, void* pData, UINT nElements, UINT nStride, DXGI_FORMAT ndxgiFormat, UINT nIndex);
 	ID3D12Resource* CreateTexture(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, UINT nIndex, UINT nResourceType, UINT nWidth, UINT nHeight, UINT nElements, UINT nMipLevels, DXGI_FORMAT dxgiFormat, D3D12_RESOURCE_FLAGS d3dResourceFlags, D3D12_RESOURCE_STATES d3dResourceStates, D3D12_CLEAR_VALUE* pd3dClearValue);
-
+	ID3D12Resource* CreateTexture(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, UINT nWidth, UINT nHeight, UINT nElements, UINT nMipLevels, DXGI_FORMAT dxgiFormat, D3D12_RESOURCE_FLAGS d3dResourceFlags, D3D12_RESOURCE_STATES d3dResourceStates, D3D12_CLEAR_VALUE* pd3dClearValue, UINT nResourceType, UINT nIndex);
 	int LoadTextureFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, CGameObject* pParent, FILE* pInFile, CShader* pShader, UINT nIndex);
 
 	void SetRootParameterIndex(int nIndex, UINT nRootParameterIndex);
@@ -115,53 +112,7 @@ public:
 #define MATERIAL_EMISSION_MAP		0x10
 #define MATERIAL_DETAIL_ALBEDO_MAP	0x20
 #define MATERIAL_DETAIL_NORMAL_MAP	0x40
-struct MATERIALLOADINFO
-{
-	XMFLOAT4						m_xmf4AlbedoColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	XMFLOAT4						m_xmf4EmissiveColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
-	XMFLOAT4						m_xmf4SpecularColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
 
-	float							m_fGlossiness = 0.0f;
-	float							m_fSmoothness = 0.0f;
-	float							m_fSpecularHighlight = 0.0f;
-	float							m_fMetallic = 0.0f;
-	float							m_fGlossyReflection = 0.0f;
-
-	UINT							m_nType = 0x00;
-
-	//char							m_pstrAlbedoMapName[64] = { '\0' };
-	//char							m_pstrSpecularMapName[64] = { '\0' };
-	//char							m_pstrMetallicMapName[64] = { '\0' };
-	//char							m_pstrNormalMapName[64] = { '\0' };
-	//char							m_pstrEmissionMapName[64] = { '\0' };
-	//char							m_pstrDetailAlbedoMapName[64] = { '\0' };
-	//char							m_pstrDetailNormalMapName[64] = { '\0' };
-};
-
-struct MATERIALSLOADINFO
-{
-	int								m_nMaterials = 0;
-	MATERIALLOADINFO* m_pMaterials = NULL;
-};
-class CMaterialColors
-{
-public:
-	CMaterialColors() { }
-	CMaterialColors(MATERIALLOADINFO* pMaterialInfo);
-	virtual ~CMaterialColors() { }
-
-private:
-	int								m_nReferences = 0;
-
-public:
-	void AddRef() { m_nReferences++; }
-	void Release() { if (--m_nReferences <= 0) delete this; }
-
-	XMFLOAT4						m_xmf4Ambient = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
-	XMFLOAT4						m_xmf4Diffuse = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
-	XMFLOAT4						m_xmf4Specular = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f); //(r,g,b,a=power)
-	XMFLOAT4						m_xmf4Emissive = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
-};
 
 class CGameObject;
 
@@ -265,6 +216,7 @@ public:
 	virtual void Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent = NULL);
 
 	virtual void OnPrepareRender() {  }
+	virtual void OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList, CScene* pScene) {}
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera = NULL);
 	//virtual void Render(bool Terrain, ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera = NULL);
 
@@ -373,4 +325,20 @@ public:
 };
 
 
+
+class CDynamicCubeMappingObject : public CGameObject
+{
+public:
+	CDynamicCubeMappingObject(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, LONG nCubeMapSize, D3D12_CPU_DESCRIPTOR_HANDLE d3dDsvCPUDescriptorHandle, D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle, CShader* pShader);
+	virtual ~CDynamicCubeMappingObject();
+
+	virtual void OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList, CScene* pScene);
+
+	CCamera* m_ppCameras[6];
+
+	D3D12_CPU_DESCRIPTOR_HANDLE		m_pd3dRtvCPUDescriptorHandles[6];
+
+	ID3D12Resource* m_pd3dDepthStencilBuffer = NULL;
+	D3D12_CPU_DESCRIPTOR_HANDLE		m_d3dDsvCPUDescriptorHandle;
+};
 

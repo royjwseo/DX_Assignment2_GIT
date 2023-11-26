@@ -7,6 +7,7 @@
 #include "Object.h"
 #include "Camera.h"
 #include "Player.h"
+
 class CShader
 {
 public:
@@ -54,7 +55,8 @@ public:
 	virtual void UpdateShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT4X4* pxmf4x4World) { }
 
 	virtual void OnPrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, void* pContext);
-	//virtual void OnPreRender(ID3D12Device* pd3dDevice, ID3D12CommandQueue* pd3dCommandQueue, ID3D12Fence* pd3dFence, HANDLE hFenceEvent, CScene* pScene) { }
+	virtual void OnPreRender(ID3D12Device* pd3dDevice, ID3D12CommandQueue* pd3dCommandQueue, ID3D12Fence* pd3dFence, HANDLE hFenceEvent, CScene* pScene) {}
+
 	virtual void OnPrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, int nPipelineState = 0);
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, int nPipelineState = 0);
 
@@ -138,6 +140,38 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 
+class CDynamicCubeMappingShader : public CShader
+{
+public:
+	CDynamicCubeMappingShader(UINT nCubeMapSize = 256);
+	virtual ~CDynamicCubeMappingShader();
+
+	virtual D3D12_INPUT_LAYOUT_DESC CreateInputLayout();
+	virtual D3D12_SHADER_BYTECODE CreateVertexShader(ID3DBlob** ppd3dShaderBlob);
+	virtual D3D12_SHADER_BYTECODE CreatePixelShader(ID3DBlob** ppd3dShaderBlob);
+
+	//virtual D3D12_DEPTH_STENCIL_DESC CreateDepthStencilState();
+	//virtual D3D12_RASTERIZER_DESC CreateRasterizerState();
+	virtual void BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, void* pContext = NULL);
+	virtual void ReleaseObjects();
+
+	virtual void ReleaseUploadBuffers();
+
+	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+	virtual void OnPreRender(ID3D12Device* pd3dDevice, ID3D12CommandQueue* pd3dCommandQueue, ID3D12Fence* pd3dFence, HANDLE hFenceEvent, CScene* pScene);
+	virtual void CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dGraphicsRootSignature);
+protected:
+	ULONG							m_nCubeMapSize = 256;
+
+	ID3D12CommandAllocator* m_pd3dCommandAllocator = NULL;
+	ID3D12GraphicsCommandList* m_pd3dCommandList = NULL;
+
+	ID3D12DescriptorHeap* m_pd3dRtvDescriptorHeap = NULL;
+	ID3D12DescriptorHeap* m_pd3dDsvDescriptorHeap = NULL;
+protected:
+	CGameObject** m_ppDynamicCubes = 0;
+	int								m_nDynamicCubes = 0;
+};
 
 
 
