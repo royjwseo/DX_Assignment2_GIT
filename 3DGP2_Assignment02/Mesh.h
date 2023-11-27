@@ -129,19 +129,20 @@ protected:
 
 	ID3D12Resource** m_ppd3dSubSetIndexBuffers = NULL;
 	ID3D12Resource** m_ppd3dSubSetIndexUploadBuffers = NULL;
+	D3D12_INDEX_BUFFER_VIEW* m_pd3dSubSetIndexBufferViews = NULL;
 
 	UINT							m_nIndices = 0;
 	ID3D12Resource* m_pd3dIndexBuffer = NULL;
 	ID3D12Resource* m_pd3dIndexUploadBuffer = NULL;
 	D3D12_INDEX_BUFFER_VIEW			m_d3dIndexBufferView;
-	D3D12_INDEX_BUFFER_VIEW* m_pd3dSubSetIndexBufferViews = NULL;
+
 
 public:
 	UINT GetType() { return(m_nType); }
 
 	virtual void ReleaseUploadBuffers();
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubSet);
-	//virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList) {}
+	
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

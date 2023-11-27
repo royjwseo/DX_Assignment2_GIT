@@ -36,7 +36,6 @@ struct LIGHTS
 {
 	LIGHT					m_pLights[MAX_LIGHTS];
 	XMFLOAT4				m_xmf4GlobalAmbient;
-	int						m_nLights;
 };
 
 struct MATERIALS
@@ -96,7 +95,10 @@ public:
 	void AnimateObjects(float fTimeElapsed);
 	void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera = NULL);
 	void PrepareRender(ID3D12GraphicsCommandList* pd3dCommandList);
+	
 	void OnPreRender(ID3D12Device* pd3dDevice, ID3D12CommandQueue* pd3dCommandQueue, ID3D12Fence* pd3dFence, HANDLE hFenceEvent);
+
+	
 
 	void ReleaseUploadBuffers();
 
@@ -116,18 +118,19 @@ public:
 	int							m_nEnvironmentMappingShaders = 0;
 
 	CHeightMapTerrain* m_pTerrain = NULL;
-	LIGHT* m_pLights = NULL;
+	
+	LIGHTS* m_pLights = NULL;
 	int									m_nLights = 0;
 
-	XMFLOAT4							m_xmf4GlobalAmbient;
+
 
 	ID3D12Resource* m_pd3dcbLights = NULL;
 	LIGHTS* m_pcbMappedLights = NULL;
 
 	MATERIALS* m_pMaterials = NULL;
 
-	ID3D12Resource* m_pd3dcbMaterials = NULL;
-	MATERIAL* m_pcbMappedMaterials = NULL;
+	//ID3D12Resource* m_pd3dcbMaterials = NULL;
+	//MATERIAL* m_pcbMappedMaterials = NULL;
 
 public:
 	static CDescriptorHeap* m_pDescriptorHeap;

@@ -11,6 +11,7 @@ struct VS_CB_CAMERA_INFO
 {
 	XMFLOAT4X4						m_xmf4x4View;
 	XMFLOAT4X4						m_xmf4x4Projection;
+	XMFLOAT4X4						m_xmf4x4ViewProjection;
 	XMFLOAT3						m_xmf3Position;
 };
 
@@ -56,6 +57,7 @@ public:
 
 	void GenerateViewMatrix();
 	void GenerateViewMatrix(XMFLOAT3 xmf3Position, XMFLOAT3 xmf3LookAt, XMFLOAT3 xmf3Up);
+	void GenerateViewMatrix(XMFLOAT3& xmf3Position, XMFLOAT3& xmf3Right, XMFLOAT3& xmf3Up, XMFLOAT3& xmf3Look);
 	void RegenerateViewMatrix();
 
 	void GenerateProjectionMatrix(float fNearPlaneDistance, float fFarPlaneDistance, float fAspectRatio, float fFOVAngle);

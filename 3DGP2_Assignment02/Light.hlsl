@@ -31,7 +31,6 @@ cbuffer cbLights : register(b4)
 {
 	LIGHT					gLights[MAX_LIGHTS];
 	float4					gcGlobalAmbientLight;
-	int						gnLights;
 };
 
 float4 DirectionalLight(int nIndex, float3 vNormal, float3 vToCamera)

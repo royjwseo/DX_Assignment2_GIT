@@ -493,12 +493,12 @@ void CGameObject::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pC
 				m_ppMaterials[i]->UpdateShaderVariables(pd3dCommandList);
 			}
 
-			if (m_pMesh) m_pMesh->Render(pd3dCommandList, i);
+			if (m_pMesh) m_pMesh->Render(pd3dCommandList,i);
 			if (m_ppMeshes)
 			{
-				for (int i = 0; i < m_nMeshes; i++)
+				for (int j = 0; j < m_nMeshes; j++)
 				{
-					if (m_ppMeshes[i]) m_ppMeshes[i]->Render(pd3dCommandList, i);
+					if (m_ppMeshes[j]) m_ppMeshes[j]->Render(pd3dCommandList, i);
 				}
 			}
 		}
@@ -943,7 +943,7 @@ void CSkyBox::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamer
 {
 	XMFLOAT3 xmf3CameraPos = pCamera->GetPosition();
 	SetPosition(xmf3CameraPos.x, xmf3CameraPos.y, xmf3CameraPos.z);
-
+	//UpdateTransform(NULL);
 	CGameObject::Render(pd3dCommandList, pCamera);
 }
 
@@ -1056,7 +1056,7 @@ CDynamicCubeMappingObject::CDynamicCubeMappingObject(ID3D12Device* pd3dDevice, I
 		m_ppCameras[j]->SetViewport(0, 0, nCubeMapSize, nCubeMapSize, 0.0f, 1.0f);
 		m_ppCameras[j]->SetScissorRect(0, 0, nCubeMapSize, nCubeMapSize);
 		m_ppCameras[j]->CreateShaderVariables(pd3dDevice, pd3dCommandList);
-		m_ppCameras[j]->GenerateProjectionMatrix(0.1f, 3000.0f, 1.0f/*Aspect Ratio*/, 90.0f/*FOV*/);
+		m_ppCameras[j]->GenerateProjectionMatrix(0.1f, 5000.0f, 1.0f/*Aspect Ratio*/, 90.0f/*FOV*/);
 	}
 
 	//Depth Buffer & View
@@ -1121,7 +1121,7 @@ void CDynamicCubeMappingObject::OnPreRender(ID3D12GraphicsCommandList* pd3dComma
 
 	float pfClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	::SynchronizeResourceTransition(pd3dCommandList, m_ppMaterials[0]->m_pTexture->GetResource(0), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	//pd3dCommandList->OMSetStencilRef(0x01);
+	
 	XMFLOAT3 xmf3Position = GetPosition();
 	for (int j = 0; j < 6; j++)
 	{

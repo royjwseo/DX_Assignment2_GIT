@@ -261,7 +261,7 @@ void CShader::OnPrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, CCamer
 
 void CShader::OnPrepareRender(ID3D12GraphicsCommandList* pd3dCommandList, int nPipelineState)
 {
-	//if (m_pd3dGraphicsRootSignature) pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature);
+	if (m_pd3dGraphicsRootSignature) pd3dCommandList->SetGraphicsRootSignature(m_pd3dGraphicsRootSignature);
 	if (m_ppd3dPipelineStates) pd3dCommandList->SetPipelineState(m_ppd3dPipelineStates[0]);
 
 	
@@ -722,13 +722,24 @@ void CDynamicCubeMappingShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12Roo
 	CShader::CreateShader(pd3dDevice, pd3dGraphicsRootSignature);
 }
 
+void CDynamicCubeMappingShader::AnimateObjects(float fTimeElapsed)
+{
+	for (int j = 0; j < m_nDynamicCubes; j++)
+	{
+		m_ppDynamicCubes[j]->Animate(fTimeElapsed);
+	}
+}
+
 void CDynamicCubeMappingShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
 	CShader::Render(pd3dCommandList, pCamera);
 
 	for (int j = 0; j < m_nDynamicCubes; j++)
 	{
-		if (m_ppDynamicCubes[j]) m_ppDynamicCubes[j]->Render(pd3dCommandList, pCamera);
+		if (m_ppDynamicCubes[j]) {
+			m_ppDynamicCubes[j]->UpdateTransform(NULL);
+			m_ppDynamicCubes[j]->Render(pd3dCommandList, pCamera);
+		}
 	}
 	
 }
