@@ -98,7 +98,7 @@ public:
 	
 	void OnPreRender(ID3D12Device* pd3dDevice, ID3D12CommandQueue* pd3dCommandQueue, ID3D12Fence* pd3dFence, HANDLE hFenceEvent);
 
-	
+	int SkyBoxIndex = 0;
 
 	void ReleaseUploadBuffers();
 
@@ -106,6 +106,8 @@ public:
 	CPlayer* m_pPlayer = NULL;
 
 public:
+	
+
 	ID3D12RootSignature* m_pd3dGraphicsRootSignature = NULL;
 
 	

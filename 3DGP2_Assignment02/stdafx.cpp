@@ -9,6 +9,8 @@
 
 bool gbTerrainTessellationWireframe = false;
 
+
+int SkyBoxIndex = 0;
 UINT gnRtvDescriptorIncrementSize = 0;
 UINT gnDsvDescriptorIncrementSize = 0;
 UINT gnCbvSrvDescriptorIncrementSize = 0;

@@ -143,19 +143,19 @@ VS_SKYBOX_CUBEMAP_OUTPUT VSSkyBox(VS_SKYBOX_CUBEMAP_INPUT input)
 	return(output);
 }
 
-TextureCube gtxtSkyCubeTexture[16] : register(t13);
+TextureCube gtxtSkyCubeTexture : register(t13);
 SamplerState gssClamp : register(s1);
 
 float4 PSSkyBox(VS_SKYBOX_CUBEMAP_OUTPUT input) : SV_TARGET
 {
-	float4 cColor;
+	float4 cColor= gtxtSkyCubeTexture.Sample(gssClamp, input.positionL);
 
-// 시간 변수를 실수로 가정하고 1.5초 간격으로 텍스처를 변경합니다.
-float currentTime = gfCurrentTime * 1.5f;
-
-// 실수 시간 변수를 이용하여 텍스처를 변경합니다.
-int textureIndex = int(currentTime+6.f) % 16;
-cColor = gtxtSkyCubeTexture[textureIndex].Sample(gssClamp, input.positionL);
+//// 시간 변수를 실수로 가정하고 1.5초 간격으로 텍스처를 변경합니다.
+//float currentTime = gfCurrentTime * 1.5f;
+//
+//// 실수 시간 변수를 이용하여 텍스처를 변경합니다.
+//int textureIndex = int(currentTime+14.f) % 16;
+//cColor = gtxtSkyCubeTexture[textureIndex].Sample(gssClamp, input.positionL);
 
 return cColor;
 }

@@ -207,7 +207,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	XMFLOAT3 xmf3Scale(16.0f, 3.0f, 16.0f);
 	XMFLOAT4 xmf4Color(0.0f, 0.0f, 0.0f, 0.0f);
 #ifdef _WITH_TERRAIN_PARTITION
-	m_pTerrain = new CHeightMapTerrain(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, _T("Image/HeightMap2.raw"), 257, 257, 13, 13, xmf3Scale, xmf4Color);
+	m_pTerrain = new CHeightMapTerrain(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, _T("Image/HeightMap.raw"), 257, 257, 13, 13, xmf3Scale, xmf4Color);
 
 	//m_pTerrain = new CHeightMapTerrain(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, _T("../Assets/Image/Terrain/HeightMap.raw"), 257, 257, 17, 17, xmf3Scale, xmf4Color);
 #else
@@ -219,7 +219,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_nEnvironmentMappingShaders = 1;
 	m_ppEnvironmentMappingShaders = new CDynamicCubeMappingShader * [m_nEnvironmentMappingShaders];
 
-	m_ppEnvironmentMappingShaders[0] = new CDynamicCubeMappingShader(10);
+	m_ppEnvironmentMappingShaders[0] = new CDynamicCubeMappingShader(256);
 	m_ppEnvironmentMappingShaders[0]->CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature);
 	m_ppEnvironmentMappingShaders[0]->BuildObjects(pd3dDevice, pd3dCommandList, m_pTerrain);
 
@@ -277,7 +277,7 @@ ID3D12RootSignature* CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevic
 	pd3dDescriptorRanges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	pd3dDescriptorRanges[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	pd3dDescriptorRanges[1].NumDescriptors = 16;
+	pd3dDescriptorRanges[1].NumDescriptors = 1;
 	pd3dDescriptorRanges[1].BaseShaderRegister = 13; //t13: gtxtSkyBoxTexture
 	pd3dDescriptorRanges[1].RegisterSpace = 0;
 	pd3dDescriptorRanges[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
@@ -454,7 +454,7 @@ bool CScene::OnProcessingKeyboardMessage(HWND hWnd, UINT nMessageID, WPARAM wPar
 			
 			break;
 		case 'W':
-		
+			
 				
 	
 			break;

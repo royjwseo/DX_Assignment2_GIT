@@ -88,6 +88,8 @@ void CTexture::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList)
 	}
 }
 
+
+
 void CTexture::UpdateShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList, int nParameterIndex, int nTextureIndex)
 {
 	pd3dCommandList->SetGraphicsRootDescriptorTable(m_pnRootParameterIndices[nParameterIndex], m_pd3dSrvGpuDescriptorHandles[nTextureIndex]);
@@ -291,6 +293,18 @@ void CMaterial::UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList
 	pd3dCommandList->SetGraphicsRoot32BitConstants(1, 1, &m_nType, 32);
 
 	if (m_pTexture) m_pTexture->UpdateShaderVariables(pd3dCommandList);
+}
+
+void CMaterial::UpdateSkyBoxShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList,int rootindex, int texindex)
+{
+	pd3dCommandList->SetGraphicsRoot32BitConstants(1, 4, &m_xmf4AmbientColor, 16);
+	pd3dCommandList->SetGraphicsRoot32BitConstants(1, 4, &m_xmf4AlbedoColor, 20);
+	pd3dCommandList->SetGraphicsRoot32BitConstants(1, 4, &m_xmf4SpecularColor, 24);
+	pd3dCommandList->SetGraphicsRoot32BitConstants(1, 4, &m_xmf4EmissiveColor, 28);
+
+	pd3dCommandList->SetGraphicsRoot32BitConstants(1, 1, &m_nType, 32);
+
+	if (m_pTexture) m_pTexture->UpdateShaderVariable(pd3dCommandList, rootindex, texindex);
 }
 
 void CMaterial::ReleaseShaderVariables()
@@ -943,8 +957,34 @@ void CSkyBox::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamer
 {
 	XMFLOAT3 xmf3CameraPos = pCamera->GetPosition();
 	SetPosition(xmf3CameraPos.x, xmf3CameraPos.y, xmf3CameraPos.z);
-	//UpdateTransform(NULL);
-	CGameObject::Render(pd3dCommandList, pCamera);
+	
+	OnPrepareRender();
+	UpdateShaderVariables(pd3dCommandList);
+	UpdateShaderVariable(pd3dCommandList, &m_xmf4x4World);
+
+
+	if (m_nMaterials > 0)
+	{
+		for (int i = 0; i < m_nMaterials; i++)
+		{
+			if (m_ppMaterials[i])
+			{
+				if (m_ppMaterials[i]->m_pShader) m_ppMaterials[i]->m_pShader->Render(pd3dCommandList, pCamera);
+				m_ppMaterials[i]->UpdateSkyBoxShaderVariables(pd3dCommandList,0, ::SkyBoxIndex);
+			}
+
+			if (m_pMesh) m_pMesh->Render(pd3dCommandList, i);
+			if (m_ppMeshes)
+			{
+				for (int j = 0; j < m_nMeshes; j++)
+				{
+					if (m_ppMeshes[j]) m_ppMeshes[j]->Render(pd3dCommandList, i);
+				}
+			}
+		}
+	}
+	if (m_pSibling) m_pSibling->Render(pd3dCommandList, pCamera);
+	if (m_pChild) m_pChild->Render(pd3dCommandList, pCamera);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -990,7 +1030,7 @@ CHeightMapTerrain::CHeightMapTerrain(ID3D12Device* pd3dDevice, ID3D12GraphicsCom
 
 	//pTerrainTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/Lava(Emissive).dds", RESOURCE_TEXTURE2D, 0);
 	pTerrainTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/snowsurface.dds", RESOURCE_TEXTURE2D, 0);
-	pTerrainTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/snowsurface.dds", RESOURCE_TEXTURE2D, 1);
+	pTerrainTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/Base_Texture.dds", RESOURCE_TEXTURE2D, 1);
 	pTerrainTexture->LoadTextureFromDDSFile(pd3dDevice, pd3dCommandList, L"Image/HeightMap(Alpha).dds", RESOURCE_TEXTURE2D, 2);
 
 

@@ -79,7 +79,7 @@ extern UINT gnCbvSrvDescriptorIncrementSize;
 extern UINT	gnRtvDescriptorIncrementSize;
 extern UINT gnDsvDescriptorIncrementSize;
 
-
+extern int SkyBoxIndex;
 extern bool gbTerrainTessellationWireframe;
 
 extern void SynchronizeResourceTransition(ID3D12GraphicsCommandList* pd3dCommandList, ID3D12Resource* pd3dResource, D3D12_RESOURCE_STATES d3dStateBefore, D3D12_RESOURCE_STATES d3dStateAfter);

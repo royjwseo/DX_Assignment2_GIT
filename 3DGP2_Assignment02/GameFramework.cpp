@@ -577,6 +577,8 @@ void CGameFramework::FrameAdvance()
 	
 	UpdateShaderVariables();
 	if (m_pScene) m_pScene->Render(m_pd3dCommandList, m_pCamera);
+	float currentTime = m_GameTimer.GetTotalTime() * 1.5f;
+	::SkyBoxIndex = int(currentTime) % 16;
 
 #ifdef _WITH_PLAYER_TOP
 	m_pd3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);

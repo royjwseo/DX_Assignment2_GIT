@@ -75,6 +75,7 @@ public:
 
 	void UpdateShaderVariable(ID3D12GraphicsCommandList* pd3dCommandList, int nParameterIndex, int nTextureIndex);
 	void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
+	
 	void ReleaseShaderVariables();
 
 	void LoadTextureFromDDSFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, wchar_t* pszFileName, UINT nResourceType, UINT nIndex);
@@ -144,6 +145,7 @@ public:
 	void SetTexture(CTexture* pTexture);
 
 	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void UpdateSkyBoxShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList, int rootindex, int texindex);
 	virtual void ReleaseShaderVariables();
 
 	virtual void ReleaseUploadBuffers();

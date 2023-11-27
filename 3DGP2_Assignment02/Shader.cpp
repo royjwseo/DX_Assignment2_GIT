@@ -651,7 +651,7 @@ void CDynamicCubeMappingShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12Gra
 
 	D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_pd3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 
-	CMesh* pMeshIlluminated = new CSphereMeshIlluminated(pd3dDevice, pd3dCommandList, 100.0f, 20, 20);
+	CMesh* pMeshIlluminated = new CSphereMeshIlluminated(pd3dDevice, pd3dCommandList, 100.0f, 10, 10);
 
 	CHeightMapTerrain* pTerrain = (CHeightMapTerrain*)pContext;
 	XMFLOAT2 xmf2TerrainCenter = XMFLOAT2(pTerrain->GetWidth() * 0.5f, pTerrain->GetLength() * 0.5f);
@@ -665,7 +665,7 @@ void CDynamicCubeMappingShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12Gra
 		float xPosition = xmf2TerrainCenter.x + ((i + 1) * 150.0f) * ((i % 2) ? +1.0f : -1.0f);
 		float zPosition = xmf2TerrainCenter.y + ((i + 1) * 150.0f) * ((i % 2) ? +1.0f : -1.0f);
 		float fHeight = pTerrain->GetHeight(xPosition, zPosition);
-		m_ppDynamicCubes[i]->SetPosition(2056, 300.f, 2056);
+		m_ppDynamicCubes[i]->SetPosition(2056, 400.f, 2056);
 
 		d3dDsvCPUDescriptorHandle.ptr += ::gnDsvDescriptorIncrementSize;
 		d3dRtvCPUDescriptorHandle.ptr += (::gnRtvDescriptorIncrementSize * 6);
