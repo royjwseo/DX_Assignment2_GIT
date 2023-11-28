@@ -1,15 +1,2 @@
-﻿  3DGP2_Assignment02.cpp
-  Camera.cpp
-  DDSTextureLoader12.cpp
-  GameFramework.cpp
-  Mesh.cpp
-C:\Users\서정원\Desktop\3D게임프로그래밍2 과제2\DX_Assignment2_GIT\3DGP2_Assignment02\Mesh.cpp(1047,21): warning C4018: '<': signed 또는 unsigned가 일치하지 않습니다.
-  Object.cpp
-  Player.cpp
-  Scene.cpp
-  Shader.cpp
-  Timer.cpp
-  WICTextureLoader12.cpp
-  stdafx.cpp
-  코드를 생성하고 있습니다...
+﻿  Scene.cpp
   3DGP2_Assignment02.vcxproj -> C:\Users\서정원\Desktop\3D게임프로그래밍2 과제2\x64\Debug\3DGP2_Assignment02.exe

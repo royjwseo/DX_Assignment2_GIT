@@ -143,12 +143,13 @@ VS_SKYBOX_CUBEMAP_OUTPUT VSSkyBox(VS_SKYBOX_CUBEMAP_INPUT input)
 	return(output);
 }
 
-TextureCube gtxtSkyCubeTexture : register(t13);
+TextureCube gtxtCubeTexture : register(t13);
+//TextureCube gtxtSkyCubeTexture[16]: register(t13);
 SamplerState gssClamp : register(s1);
 
 float4 PSSkyBox(VS_SKYBOX_CUBEMAP_OUTPUT input) : SV_TARGET
 {
-	float4 cColor= gtxtSkyCubeTexture.Sample(gssClamp, input.positionL);
+	float4 cColor= gtxtCubeTexture.Sample(gssClamp, input.positionL);
 
 //// 시간 변수를 실수로 가정하고 1.5초 간격으로 텍스처를 변경합니다.
 //float currentTime = gfCurrentTime * 1.5f;
@@ -166,7 +167,7 @@ return cColor;
 struct VS_TERRAIN_INPUT
 {
 	float3 position : POSITION;
-	float4 color : COLOR;
+	float3 normal : NORMAL;
 	float2 uv0 : TEXCOORD0;
 	float2 uv1: TEXCOORD1;
 };
@@ -174,7 +175,7 @@ struct VS_TERRAIN_INPUT
 struct VS_TERRAIN_OUTPUT
 {
 	float4 position : SV_POSITION;
-	float4 color : COLOR;
+	float3 normal : NORMAL;
 	float2 uv0 : TEXCOORD0;
 	float2 uv1: TEXCOORD1;
 };
@@ -184,12 +185,12 @@ VS_TERRAIN_OUTPUT VSTerrain(VS_TERRAIN_INPUT input)
 	VS_TERRAIN_OUTPUT output;
 
 	output.position = mul(mul(mul(float4(input.position, 1.0f), gmtxGameObject), gmtxView), gmtxProjection);
-	output.color = input.color;
+	output.normal = input.normal;
 	output.uv0 = input.uv0;
 	output.uv1 = input.uv1;
 	return(output);
 }
-Texture2D gtxtTerrainTexture[3] : register(t29);
+Texture2D gtxtTerrainTexture[3] : register(t14);
 
 
 float4 PSTerrain(VS_TERRAIN_OUTPUT input) : SV_TARGET
@@ -199,7 +200,7 @@ float4 PSTerrain(VS_TERRAIN_OUTPUT input) : SV_TARGET
 	float4 cDetailTexColor = gtxtTerrainTexture[1].Sample(gssWrap, input.uv1);
 	float4 cDetailTexColortwo = gtxtTerrainTexture[2].Sample(gssWrap, input.uv1);
 
-	float4 cColor = saturate(input.color*0.3f+(cBaseTexColor+cDetailTexColor+ cDetailTexColortwo));
+	float4 cColor = saturate((cBaseTexColor+cDetailTexColor+ cDetailTexColortwo));
 	//float4 cColor = cBaseTexColor;
 	return(cColor);
 }
@@ -209,7 +210,7 @@ struct VS_TERRAIN_TESSELLATION_OUTPUT
 {
 	float3 position : POSITION;
 	float3 positionW : POSITION1;
-	float4 color : COLOR;
+	float3 normal : NORMAL;
 	float2 uv0 : TEXCOORD0;
 	float2 uv1 : TEXCOORD1;
 };
@@ -220,7 +221,8 @@ VS_TERRAIN_TESSELLATION_OUTPUT VSTerrainTessellation(VS_TERRAIN_INPUT input)
 
 	output.position = input.position;
 	output.positionW = mul(float4(input.position, 1.0f), gmtxGameObject).xyz;
-	output.color = input.color;
+//	output.normal = mul(input.normal, (float3x3)gmtxGameObject);
+	output.normal = input.normal;
 	output.uv0 = input.uv0;
 	output.uv1 = input.uv1;
 
@@ -236,7 +238,7 @@ struct HS_TERRAIN_TESSELLATION_CONSTANT
 struct HS_TERRAIN_TESSELLATION_OUTPUT
 {
 	float3 position : POSITION;
-	float4 color : COLOR;
+	float3 normal : NORMAL;
 	float2 uv0 : TEXCOORD0;
 	float2 uv1 : TEXCOORD1;
 };
@@ -244,7 +246,8 @@ struct HS_TERRAIN_TESSELLATION_OUTPUT
 struct DS_TERRAIN_TESSELLATION_OUTPUT
 {
 	float4 position : SV_POSITION;
-	float4 color : COLOR;
+	float3 positionW :POSITION;
+	float3 normal : NORMAL;
 	float2 uv0 : TEXCOORD0;
 	float2 uv1 : TEXCOORD1;
 	float4 tessellation : TEXCOORD2;
@@ -262,7 +265,7 @@ HS_TERRAIN_TESSELLATION_OUTPUT HSTerrainTessellation(InputPatch<VS_TERRAIN_TESSE
 	HS_TERRAIN_TESSELLATION_OUTPUT output;
 
 	output.position = input[i].position;
-	output.color = input[i].color;
+	output.normal = input[i].normal;
 	output.uv0 = input[i].uv0;
 	output.uv1 = input[i].uv1;
 
@@ -283,33 +286,7 @@ HS_TERRAIN_TESSELLATION_CONSTANT HSTerrainTessellationConstant(InputPatch<VS_TER
 {
 	HS_TERRAIN_TESSELLATION_CONSTANT output;
 
-	//if (gnRenderMode & DYNAMIC_TESSELLATION)
-	//{
-	//	float3 e0 = 0.5f * (input[0].positionW + input[4].positionW);
-	//	float3 e1 = 0.5f * (input[0].positionW + input[20].positionW);
-	//	float3 e2 = 0.5f * (input[4].positionW + input[24].positionW);
-	//	float3 e3 = 0.5f * (input[20].positionW + input[24].positionW);
 
-	//	output.fTessEdges[0] = CalculateTessFactor(e0);
-	//	output.fTessEdges[1] = CalculateTessFactor(e1);
-	//	output.fTessEdges[2] = CalculateTessFactor(e2);
-	//	output.fTessEdges[3] = CalculateTessFactor(e3);
-
-	//	float3 f3Sum = float3(0.0f, 0.0f, 0.0f);
-	//	for (int i = 0; i < 25; i++) f3Sum += input[i].positionW;
-	//	float3 f3Center = f3Sum / 25.0f;
-	//	output.fTessInsides[0] = output.fTessInsides[1] = CalculateTessFactor(f3Center);
-	//}
-	//else
-	//{
-	//	output.fTessEdges[0] = 20.0f;
-	//	output.fTessEdges[1] = 20.0f;
-	//	output.fTessEdges[2] = 20.0f;
-	//	output.fTessEdges[3] = 20.0f;
-
-	//	output.fTessInsides[0] = 20.0f;
-	//	output.fTessInsides[1] = 20.0f;
-	//}
 	float3 e0 = 0.5f * (input[0].positionW + input[4].positionW);
 	float3 e1 = 0.5f * (input[0].positionW + input[20].positionW);
 	float3 e2 = 0.5f * (input[4].positionW + input[24].positionW);
@@ -358,7 +335,10 @@ DS_TERRAIN_TESSELLATION_OUTPUT DSTerrainTessellation(HS_TERRAIN_TESSELLATION_CON
 	BernsteinCoeffcient5x5(uv.x, uB);
 	BernsteinCoeffcient5x5(uv.y, vB);
 
-	output.color = lerp(lerp(patch[0].color, patch[4].color, uv.x), lerp(patch[20].color, patch[24].color, uv.x), uv.y);
+	
+	//normal = mul(normal, (float3x3)gmtxGameObject);
+	output.normal = lerp(lerp(patch[0].normal, patch[4].normal, uv.x), lerp(patch[20].normal, patch[24].normal, uv.x), uv.y);
+	output.normal = mul(output.normal, (float3x3)gmtxGameObject);
 	output.uv0 = lerp(lerp(patch[0].uv0, patch[4].uv0, uv.x), lerp(patch[20].uv0, patch[24].uv0, uv.x), uv.y);
 	output.uv1 = lerp(lerp(patch[0].uv1, patch[4].uv1, uv.x), lerp(patch[20].uv1, patch[24].uv1, uv.x), uv.y);
 
@@ -366,6 +346,7 @@ DS_TERRAIN_TESSELLATION_OUTPUT DSTerrainTessellation(HS_TERRAIN_TESSELLATION_CON
 	matrix mtxWorldViewProjection = mul(mul(gmtxGameObject, gmtxView), gmtxProjection);
 	output.position = mul(float4(position, 1.0f), mtxWorldViewProjection);
 
+	output.positionW= (float3)mul(float4(position, 1.0f), gmtxGameObject);
 	output.tessellation = float4(patchConstant.fTessEdges[0], patchConstant.fTessEdges[1], patchConstant.fTessEdges[2], patchConstant.fTessEdges[3]);
 
 	return(output);
@@ -375,32 +356,14 @@ float4 PSTerrainTessellation(DS_TERRAIN_TESSELLATION_OUTPUT input) : SV_TARGET
 {
 	float4 cColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
 
-	/*if (gnRenderMode & (DEBUG_TESSELLATION | DYNAMIC_TESSELLATION))
-	{
-		if (input.tessellation.w <= 5.0f) cColor = float4(1.0f, 0.0f, 0.0f, 1.0f);
-		else if (input.tessellation.w <= 10.0f) cColor = float4(0.0f, 1.0f, 0.0f, 1.0f);
-		else if (input.tessellation.w <= 20.0f) cColor = float4(0.0f, 0.0f, 1.0f, 1.0f);
-		else if (input.tessellation.w <= 30.0f) cColor = float4(1.0f, 0.0f, 1.0f, 1.0f);
-		else if (input.tessellation.w <= 40.0f) cColor = float4(1.0f, 1.0f, 0.0f, 1.0f);
-		else if (input.tessellation.w <= 50.0f) cColor = float4(1.0f, 1.0f, 1.0f, 1.0f);
-		else if (input.tessellation.w <= 55.0f) cColor = float4(0.2f, 0.2f, 0.72f, 1.0f);
-		else if (input.tessellation.w <= 60.0f) cColor = float4(0.5f, 0.75f, 0.75f, 1.0f);
-		else cColor = float4(0.87f, 0.17f, 1.0f, 1.0f);
-	}
-	else
-	{
-		float4 cBaseTexColor = gtxtTerrainBaseTexture.Sample(gWrapSamplerState, input.uv0);
-		float4 cDetailTexColor = gtxtTerrainDetailTexture.Sample(gWrapSamplerState, input.uv1);
-		float fAlpha = gtxtTerrainAlphaTexture.Sample(gWrapSamplerState, input.uv0);
-
-		cColor = saturate(lerp(cBaseTexColor, cDetailTexColor, fAlpha));
-	}*/
+	float4 cIllumination = Lighting(input.positionW, input.normal);
 
 	float4 cBaseTexColor = gtxtTerrainTexture[0].Sample(gssWrap, input.uv0);
 	float4 cDetailTexColor = gtxtTerrainTexture[1].Sample(gssWrap, input.uv1);
 	float fAlpha = gtxtTerrainTexture[2].Sample(gssWrap, input.uv0);
 
 	cColor = saturate(lerp(cBaseTexColor, cDetailTexColor, fAlpha));
+	cColor = lerp(cColor, cIllumination, 0.6f);
 	return(cColor);
 }
 
@@ -431,7 +394,7 @@ VS_LIGHTING_OUTPUT VSCubeMapping(VS_LIGHTING_INPUT input)
 	return(output);
 }
 
-TextureCube gtxtCubeMap : register(t32);
+
 
 float4 PSCubeMapping(VS_LIGHTING_OUTPUT input) : SV_Target
 {
@@ -441,7 +404,7 @@ float4 PSCubeMapping(VS_LIGHTING_OUTPUT input) : SV_Target
 
 	float3 vFromCamera = normalize(input.positionW - gvCameraPosition.xyz);
 	float3 vReflected = normalize(reflect(vFromCamera, input.normalW));
-	float4 cCubeTextureColor = gtxtCubeMap.Sample(gssWrap, vReflected);
+	float4 cCubeTextureColor = gtxtCubeTexture.Sample(gssWrap, vReflected);
 
 	//return(float4(vReflected * 0.5f + 0.5f, 1.0f));
 		return(cCubeTextureColor);

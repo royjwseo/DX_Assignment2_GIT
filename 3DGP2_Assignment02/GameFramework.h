@@ -43,7 +43,7 @@ public:
 	//-------
 	void UpdateShaderVariables();
 
-	
+	void UpdateSkyBoxTextureIndex();
 	//------------
 
 	

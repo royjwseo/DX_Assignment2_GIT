@@ -531,6 +531,26 @@ void CGameFramework::UpdateShaderVariables()
 
 }
 
+void CGameFramework::UpdateSkyBoxTextureIndex() {
+	float currentTime = m_GameTimer.GetTotalTime() * 1.5f;
+	::SkyBoxIndex = int(currentTime) % 16;
+	float normalizedPower = 0.0f;
+
+	float normalizedTime = fmod(currentTime, 16.0f); // currentTime을 16으로 나눈 나머지를 구합니다.
+
+	if (normalizedTime <= 8.0f) {
+		normalizedPower = normalizedTime / 8.0f; // 0에서 8까지는 증가하도록 정규화
+	}
+	else {
+		normalizedPower = 1.0f - ((normalizedTime - 8.0f) / 7.0f); // 9에서 15까지는 감소하도록 정규화
+	}
+
+	// DirectionalLightPower 배열에 적용합니다.
+	for (int i = 0; i < 3; i++) {
+		m_pScene->DirectionalLightPower[i] = normalizedPower;
+	}
+}
+
 //#define _WITH_PLAYER_TOP
 
 void CGameFramework::FrameAdvance()
@@ -577,8 +597,8 @@ void CGameFramework::FrameAdvance()
 	
 	UpdateShaderVariables();
 	if (m_pScene) m_pScene->Render(m_pd3dCommandList, m_pCamera);
-	float currentTime = m_GameTimer.GetTotalTime() * 1.5f;
-	::SkyBoxIndex = int(currentTime) % 16;
+	UpdateSkyBoxTextureIndex();
+	
 
 #ifdef _WITH_PLAYER_TOP
 	m_pd3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);

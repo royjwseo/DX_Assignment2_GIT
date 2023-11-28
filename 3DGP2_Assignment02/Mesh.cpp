@@ -677,7 +677,7 @@ CHeightMapGridMesh::CHeightMapGridMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsC
 {
 
 	//	m_nStride = sizeof(CTexturedVertex);
-	m_nStride = sizeof(CDiffusedTexturedVertex);
+	m_nStride = sizeof(CNormalTexturedVertex);
 	m_nOffset = 0;
 	m_nSlot = 0;
 
@@ -688,7 +688,7 @@ CHeightMapGridMesh::CHeightMapGridMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsC
 	m_xmf3Scale = xmf3Scale;
 
 	//	CTexturedVertex *pVertices = new CTexturedVertex[m_nVertices];
-	CDiffusedTexturedVertex* pVertices = new CDiffusedTexturedVertex[m_nVertices];
+	CNormalTexturedVertex* pVertices = new CNormalTexturedVertex[m_nVertices];
 
 	CHeightMapImage* pHeightMapImage = (CHeightMapImage*)pContext;
 	int cxHeightMap = pHeightMapImage->GetRawImageWidth();
@@ -704,7 +704,8 @@ CHeightMapGridMesh::CHeightMapGridMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsC
 			float xPosition = x * m_xmf3Scale.x, zPosition = z * m_xmf3Scale.z;
 			fHeight = pHeightMapImage->GetHeight(xPosition, zPosition, m_xmf3Scale);
 			pVertices[i].m_xmf3Position = XMFLOAT3(xPosition, fHeight, zPosition);
-			pVertices[i].m_xmf4Diffuse = Vector4::Add(OnGetColor(int(x), int(z), pContext), xmf4Color);
+			pVertices[i].m_xmf3Normal = pHeightMapImage->GetHeightMapNormal(x, z, m_xmf3Scale);
+				//Vector4::Add(OnGetColor(int(x), int(z), pContext), xmf4Color);
 			pVertices[i].m_xmf2TexCoord = XMFLOAT2(float(x) / float(cxHeightMap - 1), float(czHeightMap - 1 - z) / float(czHeightMap - 1));
 			pVertices[i].m_xmf2TexCoord0 = XMFLOAT2(float(x) / float(m_xmf3Scale.x * 0.5f), float(z) / float(m_xmf3Scale.z * 0.5f));
 			if (fHeight < fMinHeight) fMinHeight = fHeight;
