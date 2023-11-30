@@ -416,6 +416,8 @@ void CGameFramework::BuildObjects()
 	m_pScene->m_pPlayer = m_pPlayer = pTankPlayer;
 	m_pCamera = m_pPlayer->GetCamera();
 
+	CreateShaderVariables();
+
 	m_pd3dCommandList->Close();
 	ID3D12CommandList *ppd3dCommandLists[] = { m_pd3dCommandList };
 	m_pd3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
@@ -431,6 +433,7 @@ void CGameFramework::BuildObjects()
 
 void CGameFramework::ReleaseObjects()
 {
+	ReleaseShaderVariables();
 	if (m_pPlayer) m_pPlayer->Release();
 
 	if (m_pScene) m_pScene->ReleaseObjects();
@@ -517,18 +520,34 @@ void CGameFramework::MoveToNextFrame()
 }
 
 
+void CGameFramework::CreateShaderVariables()
+{
+	UINT ncbElementBytes = ((sizeof(CB_FRAMEWORK_INFO) + 255) & ~255); //256의 배수
+	m_pd3dcbFrameworkInfo = ::CreateBufferResource(m_pd3dDevice, m_pd3dCommandList, NULL, ncbElementBytes, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER | D3D12_RESOURCE_STATE_GENERIC_READ, NULL);
+
+	m_pd3dcbFrameworkInfo->Map(0, NULL, (void**)&m_pcbMappedFrameworkInfo);
+}
+
 void CGameFramework::UpdateShaderVariables()
 {
-	float fCurrentTime = m_GameTimer.GetTotalTime();
-	float fElapsedTime = m_GameTimer.GetTimeElapsed();
+	m_pcbMappedFrameworkInfo->m_fCurrentTime = m_GameTimer.GetTotalTime();
+	m_pcbMappedFrameworkInfo->m_fElapsedTime = m_GameTimer.GetTimeElapsed();
+	m_pcbMappedFrameworkInfo->m_fSecondsPerFirework = 0.4f;
+	m_pcbMappedFrameworkInfo->m_nFlareParticlesToEmit = 100;
+	m_pcbMappedFrameworkInfo->m_xmf3Gravity = XMFLOAT3(0.0f, -9.8f, 0.0f);
+	m_pcbMappedFrameworkInfo->m_nMaxFlareType2Particles = 15 * 1.5f;
 
-	
+	D3D12_GPU_VIRTUAL_ADDRESS d3dGpuVirtualAddress = m_pd3dcbFrameworkInfo->GetGPUVirtualAddress();
+	m_pd3dCommandList->SetGraphicsRootConstantBufferView(PARAMETER_TIME_CONSTANTS, d3dGpuVirtualAddress);
+}
 
-	m_pd3dCommandList->SetGraphicsRoot32BitConstants(PARAMETER_TIME_CONSTANTS, 1, &fCurrentTime, 0);
-	m_pd3dCommandList->SetGraphicsRoot32BitConstants(PARAMETER_TIME_CONSTANTS, 1, &fElapsedTime, 1);
-	
-
-
+void CGameFramework::ReleaseShaderVariables()
+{
+	if (m_pd3dcbFrameworkInfo)
+	{
+		m_pd3dcbFrameworkInfo->Unmap(0, NULL);
+		m_pd3dcbFrameworkInfo->Release();
+	}
 }
 
 void CGameFramework::UpdateSkyBoxTextureIndex() {
@@ -562,6 +581,13 @@ void CGameFramework::FrameAdvance()
     AnimateObjects();
 
 	m_pScene->OnPreRender(m_pd3dDevice, m_pd3dCommandQueue, m_pd3dFence, m_hFenceEvent);
+	::WaitForGpuComplete(m_pd3dCommandQueue, m_pd3dFence, ++m_nFenceValues[m_nSwapChainBufferIndex], m_hFenceEvent);
+/*
+내가 WaitForGPUComplete 넣은 이유는 무언가 환경매핑에서 Onprepare렌더에서 다양한 렌더타겟과 DSV를 사용하면서 
+GPU작업이 많고 커맨드리스트 및 명령어가 많아 파티클과 중첩되는것 같았다
+그래서 모든 작업이 완료된 이후 파티클을 씬 및 파티클을 렌더하니까 잘 나온다.
+
+*/
 
 	HRESULT hResult = m_pd3dCommandAllocator->Reset();
 	hResult = m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL);
@@ -595,7 +621,9 @@ void CGameFramework::FrameAdvance()
 
 	if (m_pScene)m_pScene->PrepareRender(m_pd3dCommandList);
 	
+	
 	UpdateShaderVariables();
+	
 	if (m_pScene) m_pScene->Render(m_pd3dCommandList, m_pCamera);
 	UpdateSkyBoxTextureIndex();
 	
@@ -604,6 +632,9 @@ void CGameFramework::FrameAdvance()
 	m_pd3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
 #endif
 	if (m_pPlayer) m_pPlayer->Render(m_pd3dCommandList, m_pCamera);
+	
+	m_pScene->RenderParticle(m_pd3dCommandList, m_pCamera);
+	
 
 	::SynchronizeResourceTransition(m_pd3dCommandList, m_ppd3dSwapChainBackBuffers[m_nSwapChainBufferIndex], D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
@@ -619,6 +650,8 @@ void CGameFramework::FrameAdvance()
 
 	//WaitForGpuComplete();
 	::WaitForGpuComplete(m_pd3dCommandQueue, m_pd3dFence, ++m_nFenceValues[m_nSwapChainBufferIndex], m_hFenceEvent);
+
+	m_pScene->OnPostRenderParticle();
 
 #ifdef _WITH_PRESENT_PARAMETERS
 	DXGI_PRESENT_PARAMETERS dxgiPresentParameters;
@@ -641,7 +674,7 @@ void CGameFramework::FrameAdvance()
 	m_GameTimer.GetFrameRate(m_pszFrameRate + 12, 37);
 	size_t nLength = _tcslen(m_pszFrameRate);
 	XMFLOAT3 xmf3Position = m_pPlayer->GetPosition();
-	_stprintf_s(m_pszFrameRate + nLength, 70 - nLength, _T("(%4f, %4f, %4f)"), xmf3Position.x, xmf3Position.y, xmf3Position.z);
+	_stprintf_s(m_pszFrameRate + nLength, 100 - nLength, _T("(%5.1f, %5.1f, %5.1f) Particles = %d"), xmf3Position.x, xmf3Position.y, xmf3Position.z, ::gnCurrentParticles);
 	::SetWindowText(m_hWnd, m_pszFrameRate);
 }
 

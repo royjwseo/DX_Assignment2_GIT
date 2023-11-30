@@ -7,7 +7,7 @@
 #include "Shader.h"
 #include "Player.h"
 
-#define MAX_LIGHTS			8
+#define MAX_LIGHTS			4
 #define MAX_MATERIALS			8 
 
 #define POINT_LIGHT			1
@@ -97,6 +97,9 @@ public:
 	void PrepareRender(ID3D12GraphicsCommandList* pd3dCommandList);
 	
 	void OnPreRender(ID3D12Device* pd3dDevice, ID3D12CommandQueue* pd3dCommandQueue, ID3D12Fence* pd3dFence, HANDLE hFenceEvent);
+	void RenderParticle(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+	//void RenderEnvironmentMappingSpheres(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+	void OnPostRenderParticle();
 
 	
 	float DirectionalLightPower[3];
@@ -125,7 +128,8 @@ public:
 	LIGHTS* m_pLights = NULL;
 	int									m_nLights = 0;
 
-
+	CParticleObject** m_ppParticleObjects = NULL;
+	int							m_nParticleObjects = 0;
 
 	ID3D12Resource* m_pd3dcbLights = NULL;
 	LIGHTS* m_pcbMappedLights = NULL;
