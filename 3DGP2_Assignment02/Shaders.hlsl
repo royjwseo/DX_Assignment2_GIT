@@ -31,7 +31,24 @@ cbuffer cbFrameworkInfo : register(b3)
 	float3		gf3Gravity : packoffset(c1.x);
 	int			gnMaxFlareType2Particles : packoffset(c1.w);;
 };
+#define MAX_VERTEX_INFLUENCES			4
+#define SKINNED_ANIMATION_BONES			256
 
+cbuffer cbBoneOffsets : register(b5)
+{
+	float4x4 gpmtxBoneOffsets[SKINNED_ANIMATION_BONES];
+	// 이 행렬은 해당 본의 초기 위치로부터 실제 변환된 현재 위치로 이동하는데 사용.
+	// 이것을 원래 기존의 트랜스폼 행렬에 곱해주면 최종적으로 해당 본의 월드 공간에서의 변환을 얻을 수 있다.
+	// 이건 파일로부터 읽어오며 변하지 않는 상수버퍼 값이다.
+};
+
+cbuffer cbBoneTransforms : register(b6)
+{
+	float4x4 gpmtxBoneTransforms[SKINNED_ANIMATION_BONES];
+	// 이 상수버퍼로 넘겨온 행렬은 본의 로컬(모델 좌표계) 에서 월드 공간으로의 변환을 담당.
+	// Bone World Matrix.
+	// 이건 지속적으로 변하는 모델->월드로의 변환 행렬이다. 
+};
 
 #include "Light.hlsl"
 
@@ -77,7 +94,7 @@ VS_STANDARD_OUTPUT VSStandard(VS_STANDARD_INPUT input)
 {
 	VS_STANDARD_OUTPUT output;
 
-	output.positionW = (float3)mul(float4(input.position, 1.0f), gmtxGameObject);
+	output.positionW = (float3)mul(float4(input.position, 1.0f), gmtxGameObject).xyz;
 	output.normalW = mul(input.normal, (float3x3)gmtxGameObject);
 	output.tangentW = (float3)mul(float4(input.tangent, 1.0f), gmtxGameObject);
 	output.bitangentW = (float3)mul(float4(input.bitangent, 1.0f), gmtxGameObject);
@@ -90,35 +107,60 @@ VS_STANDARD_OUTPUT VSStandard(VS_STANDARD_INPUT input)
 float4 PSStandard(VS_STANDARD_OUTPUT input) : SV_TARGET
 {
 	
+	//float4 cAlbedoColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+	//float4 cSpecularColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+	//float4 cNormalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+	//float4 cMetallicColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+	//float4 cEmissionColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+
+
+	//if (gnTexturesMask & MATERIAL_ALBEDO_MAP) cAlbedoColor = gtxtStandardTextures[0].Sample(gssWrap, input.uv);
+	//if (gnTexturesMask & MATERIAL_SPECULAR_MAP) cSpecularColor = gtxtStandardTextures[1].Sample(gssWrap, input.uv);
+	//if (gnTexturesMask & MATERIAL_NORMAL_MAP) cNormalColor = gtxtStandardTextures[2].Sample(gssWrap, input.uv);
+	//if (gnTexturesMask & MATERIAL_METALLIC_MAP) cMetallicColor = gtxtStandardTextures[3].Sample(gssWrap, input.uv);
+	//if (gnTexturesMask & MATERIAL_EMISSION_MAP) cEmissionColor = gtxtStandardTextures[4].Sample(gssWrap, input.uv);
+
+
+	//float4 cIllumination = float4(1.0f, 1.0f, 1.0f, 1.0f);
+	//float4 cColor = cAlbedoColor + cSpecularColor + cEmissionColor;
+	//if (gnTexturesMask & MATERIAL_NORMAL_MAP)
+	//{
+	//	float3 normalW = input.normalW;
+	//	float3x3 TBN = float3x3(normalize(input.tangentW), normalize(input.bitangentW), normalize(input.normalW));
+	//	float3 vNormal = normalize(cNormalColor.rgb * 2.0f - 1.0f); //[0, 1] → [-1, 1]
+	//	normalW = normalize(mul(vNormal, TBN));
+	//	cIllumination = Lighting(input.positionW, normalW);
+	//	cColor = lerp(cColor, cIllumination, 0.5f);
+	//}
+
+	//
+	//
+	//return(cColor);
 	float4 cAlbedoColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-	float4 cSpecularColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-	float4 cNormalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-	float4 cMetallicColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-	float4 cEmissionColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-
-
 	if (gnTexturesMask & MATERIAL_ALBEDO_MAP) cAlbedoColor = gtxtStandardTextures[0].Sample(gssWrap, input.uv);
+	float4 cSpecularColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
 	if (gnTexturesMask & MATERIAL_SPECULAR_MAP) cSpecularColor = gtxtStandardTextures[1].Sample(gssWrap, input.uv);
+	float4 cNormalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
 	if (gnTexturesMask & MATERIAL_NORMAL_MAP) cNormalColor = gtxtStandardTextures[2].Sample(gssWrap, input.uv);
+	float4 cMetallicColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
 	if (gnTexturesMask & MATERIAL_METALLIC_MAP) cMetallicColor = gtxtStandardTextures[3].Sample(gssWrap, input.uv);
+	float4 cEmissionColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
 	if (gnTexturesMask & MATERIAL_EMISSION_MAP) cEmissionColor = gtxtStandardTextures[4].Sample(gssWrap, input.uv);
 
-
-	float4 cIllumination = float4(1.0f, 1.0f, 1.0f, 1.0f);
-	float4 cColor = cAlbedoColor + cSpecularColor + cEmissionColor;
+	float3 normalW;
+	float4 cColor = cAlbedoColor + cSpecularColor + cMetallicColor + cEmissionColor;
 	if (gnTexturesMask & MATERIAL_NORMAL_MAP)
 	{
-		float3 normalW = input.normalW;
 		float3x3 TBN = float3x3(normalize(input.tangentW), normalize(input.bitangentW), normalize(input.normalW));
 		float3 vNormal = normalize(cNormalColor.rgb * 2.0f - 1.0f); //[0, 1] → [-1, 1]
 		normalW = normalize(mul(vNormal, TBN));
-		cIllumination = Lighting(input.positionW, normalW);
-		cColor = lerp(cColor, cIllumination, 0.5f);
 	}
-
-	
-	
-	return(cColor);
+	else
+	{
+		normalW = normalize(input.normalW);
+	}
+	float4 cIllumination = Lighting(input.positionW, normalW);
+	return(lerp(cColor, cIllumination, 0.5f));
 }
 
 
@@ -677,4 +719,60 @@ float4 PSParticleDraw(GS_PARTICLE_DRAW_OUTPUT input) : SV_TARGET
 	cColor *= input.color;
 
 	return(cColor);
+}
+
+
+
+
+
+struct VS_SKINNED_STANDARD_INPUT
+{
+	float3 position : POSITION;
+	float2 uv : TEXCOORD;
+	float3 normal : NORMAL;
+	float3 tangent : TANGENT;
+	float3 bitangent : BITANGENT;
+	int4 indices : BONEINDEX;
+	float4 weights : BONEWEIGHT;
+};
+
+VS_STANDARD_OUTPUT VSSkinnedAnimationStandard(VS_SKINNED_STANDARD_INPUT input)
+{
+	VS_STANDARD_OUTPUT output;
+
+	//output.positionW = float3(0.0f, 0.0f, 0.0f);
+	//output.normalW = float3(0.0f, 0.0f, 0.0f);
+	//output.tangentW = float3(0.0f, 0.0f, 0.0f);
+	//output.bitangentW = float3(0.0f, 0.0f, 0.0f);
+	//matrix mtxVertexToBoneWorld;
+	//for (int i = 0; i < MAX_VERTEX_INFLUENCES; i++)
+	//{
+	//	mtxVertexToBoneWorld = mul(gpmtxBoneOffsets[input.indices[i]], gpmtxBoneTransforms[input.indices[i]]);
+	//	output.positionW += input.weights[i] * mul(float4(input.position, 1.0f), mtxVertexToBoneWorld).xyz;
+	//	output.normalW += input.weights[i] * mul(input.normal, (float3x3)mtxVertexToBoneWorld);
+	//	output.tangentW += input.weights[i] * mul(input.tangent, (float3x3)mtxVertexToBoneWorld);
+	//	output.bitangentW += input.weights[i] * mul(input.bitangent, (float3x3)mtxVertexToBoneWorld);
+	//}
+	float4x4 mtxVertexToBoneWorld = (float4x4)0.0f;
+	for (int i = 0; i < MAX_VERTEX_INFLUENCES; i++)
+	{
+		//		mtxVertexToBoneWorld += input.weights[i] * gpmtxBoneTransforms[input.indices[i]];
+		mtxVertexToBoneWorld += input.weights[i] * mul(gpmtxBoneOffsets[input.indices[i]], gpmtxBoneTransforms[input.indices[i]]);
+		// mul(gpmtxBoneOffsets[input.indices[i]], gpmtxBoneTransforms[input.indices[i]]); 
+		// 이 부분이 본 트랜스폼 행렬과 본 오프셋 행렬을 곱하여 월드 공간으로 변환을 시키고 
+		// 각 본의 계층 구조에서 각 본 마다 부모 본으로부터의 상대적인 변환을 오프셋 변환 행렬로 표현하여 이를 곱해주어야만 월드공간에서의 
+		// 해당 본의 상대적인 계층 구조에 따라 각 본이 자연스럽게 위치할 수 있다. 
+
+	}
+	output.positionW = mul(float4(input.position, 1.0f), mtxVertexToBoneWorld).xyz;
+	output.normalW = mul(input.normal, (float3x3)mtxVertexToBoneWorld).xyz;
+	output.tangentW = mul(input.tangent, (float3x3)mtxVertexToBoneWorld).xyz;
+	output.bitangentW = mul(input.bitangent, (float3x3)mtxVertexToBoneWorld).xyz;
+
+	//	output.positionW = mul(float4(input.position, 1.0f), gmtxGameObject).xyz;
+
+	output.position = mul(mul(float4(output.positionW, 1.0f), gmtxView), gmtxProjection);
+	output.uv = input.uv;
+
+	return(output);
 }

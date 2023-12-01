@@ -3,15 +3,18 @@
 //-----------------------------------------------------------------------------
 
 #pragma once
+class CGameObject;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-#define VERTEXT_POSITION				0x01
-#define VERTEXT_COLOR					0x02
-#define VERTEXT_NORMAL					0x04
-#define VERTEXT_TANGENT					0x08
-#define VERTEXT_TEXTURE_COORD0			0x10
-#define VERTEXT_TEXTURE_COORD1			0x20
+#define VERTEXT_POSITION				0x0001
+#define VERTEXT_COLOR					0x0002
+#define VERTEXT_NORMAL					0x0004
+#define VERTEXT_TANGENT					0x0008
+#define VERTEXT_TEXTURE_COORD0			0x0010
+#define VERTEXT_TEXTURE_COORD1			0x0020
+
+#define VERTEXT_BONE_INDEX_WEIGHT		0x1000
 
 #define VERTEXT_TEXTURE					(VERTEXT_POSITION | VERTEXT_TEXTURE_COORD0)
 #define VERTEXT_DETAIL					(VERTEXT_POSITION | VERTEXT_TEXTURE_COORD0 | VERTEXT_TEXTURE_COORD1)
@@ -129,9 +132,9 @@ public:
 	void AddRef() { m_nReferences++; }
 	void Release() { if (--m_nReferences <= 0) delete this; }
 
-protected:
+public:
 	char							m_pstrMeshName[256] = { 0 };
-
+protected:
 	UINT							m_nType = 0x00;
 
 	XMFLOAT3						m_xmf3AABBCenter = XMFLOAT3(0.0f, 0.0f, 0.0f);
@@ -172,9 +175,14 @@ protected:
 public:
 	UINT GetType() { return(m_nType); }
 
+	virtual void CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList) { }
+	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList) { }
+	virtual void ReleaseShaderVariables() { }
+
 	virtual void ReleaseUploadBuffers();
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubSet);
 public:
+	virtual void OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList, void* pContext);
 	virtual void PreRender(ID3D12GraphicsCommandList* pd3dCommandList, int nPipelineState) { }
 	virtual void PostRender(ID3D12GraphicsCommandList* pd3dCommandList, int nPipelineState) { }
 	virtual void OnPostRender(int nPipelineState) { }
@@ -249,7 +257,59 @@ public:
 	void LoadMeshFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile);
 
 	virtual void ReleaseUploadBuffers();
-	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubSet);
+	virtual void OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList, void* pContext);
+};
+
+
+
+#define SKINNED_ANIMATION_BONES		256
+
+class CSkinnedMesh : public CStandardMesh
+{
+public:
+	CSkinnedMesh(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual ~CSkinnedMesh();
+
+protected:
+	ID3D12Resource* m_pd3dBoneIndexBuffer = NULL;
+	ID3D12Resource* m_pd3dBoneIndexUploadBuffer = NULL;
+	D3D12_VERTEX_BUFFER_VIEW		m_d3dBoneIndexBufferView;
+
+	ID3D12Resource* m_pd3dBoneWeightBuffer = NULL;
+	ID3D12Resource* m_pd3dBoneWeightUploadBuffer = NULL;
+	D3D12_VERTEX_BUFFER_VIEW		m_d3dBoneWeightBufferView;
+
+protected:
+	int								m_nBonesPerVertex = 4;
+
+	XMINT4* m_pxmn4BoneIndices = NULL;
+	XMFLOAT4* m_pxmf4BoneWeights = NULL;
+
+public:
+	int								m_nSkinningBones = 0;
+
+	char(*m_ppstrSkinningBoneNames)[64]; //[m_nSkinningBones]
+	CGameObject** m_ppSkinningBoneFrameCaches = NULL; //[m_nSkinningBones]
+
+	XMFLOAT4X4* m_pxmf4x4BindPoseBoneOffsets = NULL; //[m_nSkinningBones], Transposed
+
+	ID3D12Resource* m_pd3dcbBindPoseBoneOffsets = NULL; //[m_nSkinningBones]
+	XMFLOAT4X4* m_pcbxmf4x4MappedBindPoseBoneOffsets = NULL; //[m_nSkinningBones]
+
+	ID3D12Resource* m_pd3dcbSkinningBoneTransforms = NULL; //[m_nSkinningBones], Pointer Only
+	XMFLOAT4X4* m_pcbxmf4x4MappedSkinningBoneTransforms = NULL; //[m_nSkinningBones]
+
+public:
+	void PrepareSkinning(CGameObject* pModelRootObject);
+	void LoadSkinInfoFromFile(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, FILE* pInFile);
+
+	virtual void CreateShaderVariables(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* pd3dCommandList);
+	virtual void ReleaseShaderVariables();
+
+	virtual void ReleaseUploadBuffers();
+
+	virtual void OnPreRender(ID3D12GraphicsCommandList* pd3dCommandList, void* pContext);
 };
 
 class CRawFormatImage

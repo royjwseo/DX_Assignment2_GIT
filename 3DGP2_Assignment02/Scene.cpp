@@ -199,9 +199,9 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	
 
 	m_pDescriptorHeap = new CDescriptorHeap();
-	CreateCbvSrvDescriptorHeaps(pd3dDevice, 0, 4 + 9 + 3 + 5 + 2 + 4 + 5 + 3 + 5 + 3 + 1 ); //총알(4) 건물들3가지(9) 윈드밀(3) 탱크(5), 돌식물(2) 나무(4) 플레이어 (5)
+	CreateCbvSrvDescriptorHeaps(pd3dDevice, 0, 100); //총알(4) 건물들3가지(9) 윈드밀(3) 탱크(5), 돌식물(2) 나무(4) 플레이어 (5)
 	//물(3) 지형 (5) 스프라이트 3 스카이박스 1
-
+	CMaterial::PrepareShaders(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature);
 	
 
 
@@ -230,7 +230,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_nParticleObjects = 1;
 	m_ppParticleObjects = new CParticleObject * [m_nParticleObjects];
 
-	m_ppParticleObjects[0] = new CParticleObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, XMFLOAT3(2256, 300.0f, 2256), XMFLOAT3(0.0f, 60.0f, 0.0f), 0.0f, XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(15.0f, 15.0f), MAX_PARTICLES);
+	m_ppParticleObjects[0] = new CParticleObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, XMFLOAT3(2256, 300.0f, 2256), XMFLOAT3(0.0f, 60.0f, 0.0f), 0.0f, XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(8.0f, 8.0f), MAX_PARTICLES);
 
 	
 	BuildDefaultLightsAndMaterials();
@@ -322,7 +322,7 @@ ID3D12RootSignature* CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevic
 	pd3dDescriptorRanges[5].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 
-	D3D12_ROOT_PARAMETER pd3dRootParameters[10];
+	D3D12_ROOT_PARAMETER pd3dRootParameters[12];
 
 	pd3dRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	pd3dRootParameters[0].Descriptor.ShaderRegister = 1; //Camera
@@ -375,7 +375,15 @@ ID3D12RootSignature* CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevic
 	pd3dRootParameters[9].DescriptorTable.pDescriptorRanges = &pd3dDescriptorRanges[5]; //t19, gtxtRandomOnSphereTexture
 	pd3dRootParameters[9].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
+	pd3dRootParameters[10].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	pd3dRootParameters[10].Descriptor.ShaderRegister = 5; //Skinned Bone Offsets
+	pd3dRootParameters[10].Descriptor.RegisterSpace = 0;
+	pd3dRootParameters[10].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 
+	pd3dRootParameters[11].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	pd3dRootParameters[11].Descriptor.ShaderRegister = 6; //Skinned Bone Transforms
+	pd3dRootParameters[11].Descriptor.RegisterSpace = 0;
+	pd3dRootParameters[11].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 	
 
 	D3D12_STATIC_SAMPLER_DESC pd3dSamplerDescs[2];

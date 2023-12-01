@@ -415,6 +415,98 @@ void CStandardShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignature
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
+CSkinnedAnimationStandardShader::CSkinnedAnimationStandardShader()
+{
+}
+
+CSkinnedAnimationStandardShader::~CSkinnedAnimationStandardShader()
+{
+}
+
+D3D12_INPUT_LAYOUT_DESC CSkinnedAnimationStandardShader::CreateInputLayout(int nPipelineState)
+{
+	UINT nInputElementDescs = 7;
+	D3D12_INPUT_ELEMENT_DESC* pd3dInputElementDescs = new D3D12_INPUT_ELEMENT_DESC[nInputElementDescs];
+
+	pd3dInputElementDescs[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	pd3dInputElementDescs[1] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	pd3dInputElementDescs[2] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 2, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	pd3dInputElementDescs[3] = { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 3, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	pd3dInputElementDescs[4] = { "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 4, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	pd3dInputElementDescs[5] = { "BONEINDEX", 0, DXGI_FORMAT_R32G32B32A32_SINT, 5, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	pd3dInputElementDescs[6] = { "BONEWEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 6, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+
+	D3D12_INPUT_LAYOUT_DESC d3dInputLayoutDesc;
+	d3dInputLayoutDesc.pInputElementDescs = pd3dInputElementDescs;
+	d3dInputLayoutDesc.NumElements = nInputElementDescs;
+
+	return(d3dInputLayoutDesc);
+}
+
+D3D12_SHADER_BYTECODE CSkinnedAnimationStandardShader::CreateVertexShader(ID3DBlob** ppd3dShaderBlob,int nPipelineState)
+{
+	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSSkinnedAnimationStandard", "vs_5_1", ppd3dShaderBlob));
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+
+
+CSkinnedAnimationObjectsShader::CSkinnedAnimationObjectsShader()
+{
+}
+
+CSkinnedAnimationObjectsShader::~CSkinnedAnimationObjectsShader()
+{
+}
+
+void CSkinnedAnimationObjectsShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, CLoadedModelInfo* pModel, void* pContext)
+{
+}
+
+void CSkinnedAnimationObjectsShader::ReleaseObjects()
+{
+	if (m_ppObjects)
+	{
+		for (int j = 0; j < m_nObjects; j++) if (m_ppObjects[j]) m_ppObjects[j]->Release();
+		delete[] m_ppObjects;
+	}
+}
+
+void CSkinnedAnimationObjectsShader::AnimateObjects(float fTimeElapsed)
+{
+	for (int j = 0; j < m_nObjects; j++)
+	{
+		if (m_ppObjects[j])
+		{
+			m_ppObjects[j]->Animate(fTimeElapsed);
+		
+		}
+	}
+}
+
+void CSkinnedAnimationObjectsShader::ReleaseUploadBuffers()
+{
+	for (int j = 0; j < m_nObjects; j++) if (m_ppObjects[j]) m_ppObjects[j]->ReleaseUploadBuffers();
+}
+
+void CSkinnedAnimationObjectsShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera, int nPipelineState)
+{
+	CSkinnedAnimationStandardShader::Render(pd3dCommandList, pCamera);
+
+	for (int j = 0; j < m_nObjects; j++)
+	{
+		if (m_ppObjects[j])
+		{
+		
+			m_ppObjects[j]->Render(pd3dCommandList, pCamera);
+		}
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
 
 
 float Random(float fMin, float fMax)

@@ -55,7 +55,7 @@ void CPlayer::ReleaseShaderVariables()
 	if (m_pCamera) m_pCamera->ReleaseShaderVariables();
 }
 
-void CPlayer::Move(DWORD dwDirection, float fDistance, bool bUpdateVelocity)
+void CPlayer::Move(ULONG dwDirection, float fDistance, bool bUpdateVelocity)
 {
 	if (dwDirection)
 	{
@@ -231,6 +231,7 @@ void CPlayer::OnPrepareRender()
 	m_xmf4x4Transform._31 = m_xmf3Look.x; m_xmf4x4Transform._32 = m_xmf3Look.y; m_xmf4x4Transform._33 = m_xmf3Look.z;
 	m_xmf4x4Transform._41 = m_xmf3Position.x; m_xmf4x4Transform._42 = m_xmf3Position.y; m_xmf4x4Transform._43 = m_xmf3Position.z;
 
+	m_xmf4x4Transform = Matrix4x4::Multiply(XMMatrixScaling(m_xmf3Scale.x, m_xmf3Scale.y, m_xmf3Scale.z), m_xmf4x4Transform);
 	UpdateTransform(NULL);
 }
 
@@ -259,31 +260,65 @@ void CPlayer::UpdateBoundingBox()
 }
 
 
+#define _WITH_DEBUG_CALLBACK_DATA
+
+//void CSoundCallbackHandler::HandleCallback(void* pCallbackData, float fTrackPosition)
+//{
+//	_TCHAR* pWavName = (_TCHAR*)pCallbackData;
+//#ifdef _WITH_DEBUG_CALLBACK_DATA
+//	TCHAR pstrDebug[256] = { 0 };
+//	_stprintf_s(pstrDebug, 256, _T("%s(%f)\n"), pWavName, fTrackPosition);
+//	OutputDebugString(pstrDebug);
+//#endif
+//#ifdef _WITH_SOUND_RESOURCE
+//	PlaySound(pWavName, ::ghAppInstance, SND_RESOURCE | SND_ASYNC);
+//#else
+//	PlaySound(pWavName, NULL, SND_FILENAME | SND_ASYNC);
+//#endif
+//}
 
 
 CTankPlayer::CTankPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, void* pContext) {
 	
-	m_pCamera = ChangeCamera(/*SPACESHIP_CAMERA*/THIRD_PERSON_CAMERA, 0.0f);
-	m_pShader = new CStandardShader();
-	m_pShader->CreateShader(pd3dDevice, pd3dGraphicsRootSignature,0);
-	
+	m_pCamera = ChangeCamera(THIRD_PERSON_CAMERA, 0.0f);
 
-	CGameObject* pGameObject = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/Soldier.bin", m_pShader);
-	SetChild(pGameObject);
-	
-	//pGameObject->SetScale(0.5, 0.5, 0.5);
+	CLoadedModelInfo* pAngrybotModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/Monster.bin", NULL);
+	SetChild(pAngrybotModel->m_pModelRootObject, true);
 
-	SetOOBB(10.0, 5.5, 10.0);
+	m_pSkinnedAnimationController = new CAnimationController(pd3dDevice, pd3dCommandList, 2, pAngrybotModel);
+	m_pSkinnedAnimationController->SetTrackAnimationSet(0, 0);
+	m_pSkinnedAnimationController->SetTrackAnimationSet(1, 1);
+	m_pSkinnedAnimationController->SetTrackEnable(1, false);
 
-	CHeightMapTerrain* pTerrain = (CHeightMapTerrain*)pContext;
-	SetPosition(XMFLOAT3(pTerrain->GetWidth() * 0.5f, 1000.0f, pTerrain->GetLength() * 0.5f));
-	SetPlayerUpdatedContext(pTerrain);
-	SetCameraUpdatedContext(pTerrain);
-
-	
-	PrepareAnimate();
+	m_pSkinnedAnimationController->SetCallbackKeys(1, 2);
+#ifdef _WITH_SOUND_RESOURCE
+	m_pSkinnedAnimationController->SetCallbackKey(0, 0.1f, _T("Footstep01"));
+	m_pSkinnedAnimationController->SetCallbackKey(1, 0.5f, _T("Footstep02"));
+	m_pSkinnedAnimationController->SetCallbackKey(2, 0.9f, _T("Footstep03"));
+#else
+	//m_pSkinnedAnimationController->SetCallbackKey(1, 0, 0.2f, _T("Sound/Footstep01.wav"));
+	//->SetCallbackKey(1, 1, 0.5f, _T("Sound/Footstep02.wav"));
+	////	m_pSkinnedAnimationController->SetCallbackKey(1, 2, 0.39f, _T("Sound/Footstep03.wav"));
+#endif
+	CAnimationCallbackHandler* pAnimationCallbackHandler = new CSoundCallbackHandler();
+	m_pSkinnedAnimationController->SetAnimationCallbackHandler(1, pAnimationCallbackHandler);
 
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
+
+	SetPlayerUpdatedContext(pContext);
+	SetCameraUpdatedContext(pContext);
+
+	CHeightMapTerrain* pTerrain = (CHeightMapTerrain*)pContext;
+	SetPosition(XMFLOAT3(2100.0f, pTerrain->GetHeight(2100.0f, 2100.0f), 2100.0f));
+	SetScale(XMFLOAT3(10.0f, 10.0f, 10.0f));
+	//SetScale(XMFLOAT3(1.0f, 10.0f, 10.0f));
+	/*m_pShader = new CStandardShader();
+	m_pShader->CreateShader(pd3dDevice, pd3dGraphicsRootSignature, 0);*/
+
+	/*m_pShader = new CSkinnedAnimationStandardShader();
+	m_pShader->CreateShader(pd3dDevice, pd3dGraphicsRootSignature, 0);*/
+
+	if (pAngrybotModel) delete pAngrybotModel;
 }
 CTankPlayer:: ~CTankPlayer() {
 
@@ -301,38 +336,34 @@ void CTankPlayer::Animate(float fTimeElapsed, XMFLOAT4X4* pxmf4x4Parent) {
 	
 	UpdateBoundingBox();
 
-	CPlayer::Animate(fTimeElapsed, pxmf4x4Parent);
+	CPlayer::Animate(fTimeElapsed);
 }
 
 void CTankPlayer::Update(float fTimeElapsed)
 {
-	m_xmf3Velocity = Vector3::Add(m_xmf3Velocity, Vector3::ScalarProduct(m_xmf3Gravity, fTimeElapsed, false));
-	float fLength = sqrtf(m_xmf3Velocity.x * m_xmf3Velocity.x + m_xmf3Velocity.z * m_xmf3Velocity.z);
-	float fMaxVelocityXZ = m_fMaxVelocityXZ * fTimeElapsed;
-	if (fLength > m_fMaxVelocityXZ)
+	CPlayer::Update(fTimeElapsed);
+
+	if (m_pSkinnedAnimationController)
 	{
-		m_xmf3Velocity.x *= (fMaxVelocityXZ / fLength);
-		m_xmf3Velocity.z *= (fMaxVelocityXZ / fLength);
+		float fLength = sqrtf(m_xmf3Velocity.x * m_xmf3Velocity.x + m_xmf3Velocity.z * m_xmf3Velocity.z);
+		if (::IsZero(fLength))
+		{
+			m_pSkinnedAnimationController->SetTrackEnable(0, true);
+			m_pSkinnedAnimationController->SetTrackEnable(1, false);
+			m_pSkinnedAnimationController->SetTrackPosition(1, 0.0f);
+		}
 	}
-	float fMaxVelocityY = m_fMaxVelocityY * fTimeElapsed;
-	fLength = sqrtf(m_xmf3Velocity.y * m_xmf3Velocity.y);
-	if (fLength > m_fMaxVelocityY) m_xmf3Velocity.y *= (fMaxVelocityY / fLength);
+}
 
-	Move(m_xmf3Velocity, false);
+void CTankPlayer::Move(DWORD dwDirection, float fDistance, bool bUpdateVelocity)
+{
+	if (dwDirection)
+	{
+		m_pSkinnedAnimationController->SetTrackEnable(0, false);
+		m_pSkinnedAnimationController->SetTrackEnable(1, true);
+	}
 
-	//if (m_pPlayerUpdatedContext) OnPlayerUpdateCallback(fTimeElapsed);
-	if (m_pPlayerUpdatedContext) UpdateTankPosition(fTimeElapsed);
-
-	DWORD nCurrentCameraMode = m_pCamera->GetMode();
-	if (nCurrentCameraMode == THIRD_PERSON_CAMERA||nCurrentCameraMode== LEFT_CAMERA) m_pCamera->Update(m_xmf3Position, fTimeElapsed);
-	if (m_pCameraUpdatedContext) OnCameraUpdateCallback(fTimeElapsed);
-	if (nCurrentCameraMode == THIRD_PERSON_CAMERA||nCurrentCameraMode== LEFT_CAMERA) m_pCamera->SetLookAt(m_xmf3Position);
-	m_pCamera->RegenerateViewMatrix();
-
-	fLength = Vector3::Length(m_xmf3Velocity);
-	float fDeceleration = (m_fFriction * fTimeElapsed);
-	if (fDeceleration > fLength) fDeceleration = fLength;
-	m_xmf3Velocity = Vector3::Add(m_xmf3Velocity, Vector3::ScalarProduct(m_xmf3Velocity, -fDeceleration, true));
+	CPlayer::Move(dwDirection, fDistance, bUpdateVelocity);
 }
 
 void CTankPlayer::OnPrepareRender() {
@@ -465,7 +496,7 @@ void CTankPlayer::OnPlayerUpdateCallback(float fTimeElapsed)
 	XMFLOAT3 xmf3PlayerPosition = GetPosition();
 	int z = (int)(xmf3PlayerPosition.z / xmf3Scale.z);
 	bool bReverseQuad = ((z % 2) != 0);
-	float fHeight = pTerrain->GetHeight(xmf3PlayerPosition.x, xmf3PlayerPosition.z) + 6.0f;
+	float fHeight = pTerrain->GetHeight(xmf3PlayerPosition.x, xmf3PlayerPosition.z) + 3.0f;
 	if (xmf3PlayerPosition.y < fHeight)
 	{
 		XMFLOAT3 xmf3PlayerVelocity = GetVelocity();

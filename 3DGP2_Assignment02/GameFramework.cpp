@@ -411,12 +411,15 @@ void CGameFramework::BuildObjects()
 	m_pScene = new CScene();
 	if (m_pScene) m_pScene->BuildObjects(m_pd3dDevice, m_pd3dCommandList);
 
+
+	CreateShaderVariables();
+
 	CTankPlayer *pTankPlayer = new CTankPlayer(m_pd3dDevice, m_pd3dCommandList, m_pScene->GetGraphicsRootSignature(), m_pScene->GetTerrain());
 	//pTankPlayer->SetPosition(XMFLOAT3(500.0f, 0.0f, 500.0f));
 	m_pScene->m_pPlayer = m_pPlayer = pTankPlayer;
 	m_pCamera = m_pPlayer->GetCamera();
 
-	CreateShaderVariables();
+	
 
 	m_pd3dCommandList->Close();
 	ID3D12CommandList *ppd3dCommandLists[] = { m_pd3dCommandList };
@@ -477,7 +480,8 @@ void CGameFramework::ProcessInput()
 				else
 					m_pPlayer->Rotate(cyDelta, cxDelta, 0.0f);
 			}
-			if (dwDirection) { m_pPlayer->Move(dwDirection, 100.f  * m_GameTimer.GetTimeElapsed(), true); }
+			//if (dwDirection) { m_pPlayer->Move(dwDirection, 100.f  * m_GameTimer.GetTimeElapsed(), true); }
+			if (dwDirection) m_pPlayer->Move(dwDirection, 10.25f, true);
 		}
 	}
 	m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
@@ -592,16 +596,6 @@ GPU작업이 많고 커맨드리스트 및 명령어가 많아 파티클과 중첩되는것 같았다
 	HRESULT hResult = m_pd3dCommandAllocator->Reset();
 	hResult = m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL);
 
-	//D3D12_RESOURCE_BARRIER d3dResourceBarrier;
-	//::ZeroMemory(&d3dResourceBarrier, sizeof(D3D12_RESOURCE_BARRIER));
-	//d3dResourceBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-	//d3dResourceBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	//d3dResourceBarrier.Transition.pResource = m_ppd3dSwapChainBackBuffers[m_nSwapChainBufferIndex];
-	//d3dResourceBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-	//d3dResourceBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-	//d3dResourceBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-	//m_pd3dCommandList->ResourceBarrier(1, &d3dResourceBarrier);
-
 
 
 	::SynchronizeResourceTransition(m_pd3dCommandList, m_ppd3dSwapChainBackBuffers[m_nSwapChainBufferIndex], D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -632,7 +626,8 @@ GPU작업이 많고 커맨드리스트 및 명령어가 많아 파티클과 중첩되는것 같았다
 	m_pd3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
 #endif
 	if (m_pPlayer) m_pPlayer->Render(m_pd3dCommandList, m_pCamera);
-	
+	::WaitForGpuComplete(m_pd3dCommandQueue, m_pd3dFence, ++m_nFenceValues[m_nSwapChainBufferIndex], m_hFenceEvent);
+
 	m_pScene->RenderParticle(m_pd3dCommandList, m_pCamera);
 	
 
@@ -651,7 +646,7 @@ GPU작업이 많고 커맨드리스트 및 명령어가 많아 파티클과 중첩되는것 같았다
 	//WaitForGpuComplete();
 	::WaitForGpuComplete(m_pd3dCommandQueue, m_pd3dFence, ++m_nFenceValues[m_nSwapChainBufferIndex], m_hFenceEvent);
 
-	m_pScene->OnPostRenderParticle();
+	//m_pScene->OnPostRenderParticle();
 
 #ifdef _WITH_PRESENT_PARAMETERS
 	DXGI_PRESENT_PARAMETERS dxgiPresentParameters;
