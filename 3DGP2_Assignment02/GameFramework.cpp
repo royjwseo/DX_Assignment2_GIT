@@ -480,8 +480,8 @@ void CGameFramework::ProcessInput()
 				else
 					m_pPlayer->Rotate(cyDelta, cxDelta, 0.0f);
 			}
-			//if (dwDirection) { m_pPlayer->Move(dwDirection, 100.f  * m_GameTimer.GetTimeElapsed(), true); }
-			if (dwDirection) m_pPlayer->Move(dwDirection, 10.25f, true);
+			if (dwDirection) { m_pPlayer->Move(dwDirection, 300.f  * m_GameTimer.GetTimeElapsed(), true); }
+			//if (dwDirection) m_pPlayer->Move(dwDirection, 10.25f, true);
 		}
 	}
 	m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
@@ -626,7 +626,7 @@ GPU작업이 많고 커맨드리스트 및 명령어가 많아 파티클과 중첩되는것 같았다
 	m_pd3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
 #endif
 	if (m_pPlayer) m_pPlayer->Render(m_pd3dCommandList, m_pCamera);
-	::WaitForGpuComplete(m_pd3dCommandQueue, m_pd3dFence, ++m_nFenceValues[m_nSwapChainBufferIndex], m_hFenceEvent);
+	//::WaitForGpuComplete(m_pd3dCommandQueue, m_pd3dFence, ++m_nFenceValues[m_nSwapChainBufferIndex], m_hFenceEvent);
 
 	m_pScene->RenderParticle(m_pd3dCommandList, m_pCamera);
 	
@@ -646,7 +646,7 @@ GPU작업이 많고 커맨드리스트 및 명령어가 많아 파티클과 중첩되는것 같았다
 	//WaitForGpuComplete();
 	::WaitForGpuComplete(m_pd3dCommandQueue, m_pd3dFence, ++m_nFenceValues[m_nSwapChainBufferIndex], m_hFenceEvent);
 
-	//m_pScene->OnPostRenderParticle();
+	m_pScene->OnPostRenderParticle();
 
 #ifdef _WITH_PRESENT_PARAMETERS
 	DXGI_PRESENT_PARAMETERS dxgiPresentParameters;

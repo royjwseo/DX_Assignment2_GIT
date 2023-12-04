@@ -104,7 +104,7 @@ public:
 	~CSoundCallbackHandler() { }
 
 public:
-//	virtual void HandleCallback(void* pCallbackData, float fTrackPosition);
+	virtual void HandleCallback(void* pCallbackData, float fTrackPosition);
 };
 
 class CTankPlayer :public CPlayer {
