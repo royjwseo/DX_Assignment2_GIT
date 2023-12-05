@@ -1504,6 +1504,11 @@ void CGameObject::LoadAnimationFromFile(FILE* pInFile, CLoadedModelInfo* pLoaded
 
 	int nAnimationSets = 0;
 
+	//[CLoadedModelInfo* pLoadedModel]에서 채워줘야하는 요소들.
+	// int 							m_nSkinnedMeshes = 0; 
+	// CSkinnedMesh** m_ppSkinnedMeshes = NULL;  
+	// CAnimationSets* m_pAnimationSets = NULL;  -> 이건 CAnimationSet의 **를 가짐. 생성자로 개수만큼 동적할당
+
 	for (; ; )
 	{
 		::ReadStringFromFile(pInFile, pstrToken);
@@ -1511,6 +1516,9 @@ void CGameObject::LoadAnimationFromFile(FILE* pInFile, CLoadedModelInfo* pLoaded
 		{
 			nAnimationSets = ::ReadIntegerFromFile(pInFile);
 			pLoadedModel->m_pAnimationSets = new CAnimationSets(nAnimationSets);
+			//애니메이션 Set개수만큼 읽어와 애니메이션 Set관리 하는 CAnimationSets에서 그만큼
+			// CAnimationSet을 동적할당하여 **에서 관리.
+			
 		}
 		else if (!strcmp(pstrToken, "<FrameNames>:"))
 		{
@@ -1584,7 +1592,13 @@ CLoadedModelInfo* CGameObject::LoadGeometryAndAnimationFromFile(ID3D12Device* pd
 	::rewind(pInFile);
 
 	CLoadedModelInfo* pLoadedModel = new CLoadedModelInfo();
-
+	// 임시객체를 만들고 멤버인 아래 4가지를 파일로부터 읽어 채울 것임.
+	// CGameObject	CGameObject* m_pModelRootObject = NULL; -> 모델 자체는 원래대로 LoadFrameHierarchyFromFile
+	// 아래 3가지는 LoadAnimationFromFile에 임시 객체를 넘겨주어 파일에서 읽어옴
+	// int 							m_nSkinnedMeshes = 0; 
+	// CSkinnedMesh** m_ppSkinnedMeshes = NULL;  
+	// CAnimationSets* m_pAnimationSets = NULL; 
+	
 	char pstrToken[64] = { '\0' };
 
 	for (; ; )

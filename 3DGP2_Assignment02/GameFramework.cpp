@@ -458,8 +458,39 @@ void CGameFramework::ProcessInput()
 		if (pKeysBuffer[VK_PRIOR] & 0xF0) dwDirection |= DIR_UP;
 		if (pKeysBuffer[VK_NEXT] & 0xF0) dwDirection |= DIR_DOWN;
 		if (pKeysBuffer[VK_SPACE] & 0xF0) {
-			
+			m_pPlayer->Kick = true;
 		}
+		else {
+			m_pPlayer->Kick = false;
+		}
+
+		if (pKeysBuffer[VK_LSHIFT] & 0x80) {
+			m_pPlayer->Accelerate = true;
+		}
+		else {
+			m_pPlayer->Accelerate = false;
+		}
+
+		if (pKeysBuffer[VK_CONTROL] & 0x80) {
+			m_pPlayer->Attack = true;
+		}
+		else {
+			m_pPlayer->Attack = false;
+		}	
+		
+		
+		//if (bCtrlPressed && !m_bCtrlKeyPressed) {
+	//	// Ctrl 키가 처음 눌린 경우에만 실행
+	//	m_bCtrlKeyPressed = true; // Ctrl 키가 눌렸음을 표시
+	//	m_dwCtrlPressedTime = timeGetTime(); // 현재 시간 기록
+	//	m_pPlayer->Attack = true; // 공격 동작 실행
+	//}
+
+	//// Ctrl 키가 떼어진 경우 또는 시간이 지난 경우
+	//if (!bCtrlPressed || (timeGetTime() - m_dwCtrlPressedTime > 2000)) {
+	//	m_pPlayer->Attack = false; // 공격 동작 종료
+	//	m_bCtrlKeyPressed = false; // Ctrl 키 눌린 상태 초기화
+	//}
 		float cxDelta = 0.0f, cyDelta = 0.0f;
 		POINT ptCursorPos;
 		if (GetCapture() == m_hWnd)
@@ -480,11 +511,19 @@ void CGameFramework::ProcessInput()
 				else
 					m_pPlayer->Rotate(cyDelta, cxDelta, 0.0f);
 			}
-			if (dwDirection) { m_pPlayer->Move(dwDirection, 300.f  * m_GameTimer.GetTimeElapsed(), true); }
+			
+			if (dwDirection && m_pPlayer->Accelerate) { m_pPlayer->Move(dwDirection, 300.f  * m_GameTimer.GetTimeElapsed(), true); }
+			else if(dwDirection && !m_pPlayer->Accelerate) {
+				{ m_pPlayer->Move(dwDirection, 275.f * m_GameTimer.GetTimeElapsed(), true); }
+			}
 			//if (dwDirection) m_pPlayer->Move(dwDirection, 10.25f, true);
+			
 		}
 	}
-	m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
+	
+		m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
+	
+	
 }
 
 void CGameFramework::AnimateObjects()

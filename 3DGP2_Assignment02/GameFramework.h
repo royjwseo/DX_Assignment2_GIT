@@ -61,7 +61,9 @@ public:
 	void UpdateSkyBoxTextureIndex();
 	//------------
 
-	
+	bool m_bCtrlKeyPressed = false;
+	float m_dwCtrlPressedTime = 0.f;
+
 private:
 	HINSTANCE					m_hInstance;
 	HWND						m_hWnd; 

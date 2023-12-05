@@ -39,6 +39,9 @@ protected:
 public:
 	CShader* m_pShader = NULL;
 	
+	bool Accelerate = false;
+	bool Attack = false;
+	bool Kick = false;
 
 public:
 	CPlayer();

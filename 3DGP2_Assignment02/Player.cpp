@@ -62,8 +62,8 @@ void CPlayer::Move(ULONG dwDirection, float fDistance, bool bUpdateVelocity)
 		XMFLOAT3 xmf3Shift = XMFLOAT3(0, 0, 0);
 		if (dwDirection & DIR_FORWARD) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Look, fDistance);
 		if (dwDirection & DIR_BACKWARD) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Look, -fDistance);
-		/*if (dwDirection & DIR_RIGHT) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Right, fDistance);
-		if (dwDirection & DIR_LEFT) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Right, -fDistance);*/
+		if (dwDirection & DIR_RIGHT) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Right, fDistance);
+		if (dwDirection & DIR_LEFT) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Right, -fDistance);
 		if (dwDirection & DIR_UP) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Up, fDistance);
 		if (dwDirection & DIR_DOWN) xmf3Shift = Vector3::Add(xmf3Shift, m_xmf3Up, -fDistance);
 
@@ -282,13 +282,18 @@ CTankPlayer::CTankPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd
 	
 	m_pCamera = ChangeCamera(THIRD_PERSON_CAMERA, 0.0f);
 
-	CLoadedModelInfo* pAngrybotModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/Dino.bin", NULL);
+	CLoadedModelInfo* pAngrybotModel = CGameObject::LoadGeometryAndAnimationFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/minotaur1.bin", NULL);
+	//주석으로 설명 
 	SetChild(pAngrybotModel->m_pModelRootObject, true);
-
-	m_pSkinnedAnimationController = new CAnimationController(pd3dDevice, pd3dCommandList, 2, pAngrybotModel);
-	m_pSkinnedAnimationController->SetTrackAnimationSet(0, 0);
-	m_pSkinnedAnimationController->SetTrackAnimationSet(1, 1);
-	m_pSkinnedAnimationController->SetTrackEnable(1, false);
+	int animationsets = 8;
+	m_pSkinnedAnimationController = new CAnimationController(pd3dDevice, pd3dCommandList, animationsets, pAngrybotModel);
+	
+	for (int i = 0; i < animationsets; i++) {
+		m_pSkinnedAnimationController->SetTrackAnimationSet(i, i);
+	}
+	
+	for(int i=1;i<animationsets;i++)
+	m_pSkinnedAnimationController->SetTrackEnable(i, false);
 
 	m_pSkinnedAnimationController->SetCallbackKeys(1, 2);
 #ifdef _WITH_SOUND_RESOURCE
@@ -310,7 +315,7 @@ CTankPlayer::CTankPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd
 
 	CHeightMapTerrain* pTerrain = (CHeightMapTerrain*)pContext;
 	SetPosition(XMFLOAT3(2100.0f, pTerrain->GetHeight(2100.0f, 2100.0f), 2100.0f));
-	SetScale(XMFLOAT3(10.0f, 10.0f, 10.0f));
+	//SetScale(XMFLOAT3(8.0f, 8.0f, 8.0f));
 	//SetScale(XMFLOAT3(1.0f, 10.0f, 10.0f));
 	/*m_pShader = new CStandardShader();
 	m_pShader->CreateShader(pd3dDevice, pd3dGraphicsRootSignature, 0);*/
@@ -349,19 +354,64 @@ void CTankPlayer::Update(float fTimeElapsed)
 		if (::IsZero(fLength))
 		{
 			m_pSkinnedAnimationController->SetTrackEnable(0, true);
-			m_pSkinnedAnimationController->SetTrackEnable(1, false);
-			m_pSkinnedAnimationController->SetTrackPosition(1, 0.0f);
+			for(int i=1;i<8;i++)
+			m_pSkinnedAnimationController->SetTrackEnable(i, false);
+			m_pSkinnedAnimationController->SetTrackPosition(1, 0.0f); //다시 재생할수있도록
+		}
+		if (Attack) {
+			
+			for (int i = 0; i < 6; i++)
+				m_pSkinnedAnimationController->SetTrackEnable(i, false);
+				m_pSkinnedAnimationController->SetTrackEnable(6, true);
+				m_pSkinnedAnimationController->SetTrackEnable(7, false);
+			m_pSkinnedAnimationController->SetTrackPosition(1, 0.0f); //다시 재생할수있도록
+		}
+		if (Kick) {
+			for (int i = 0; i < 7; i++)
+				m_pSkinnedAnimationController->SetTrackEnable(i, false);
+			m_pSkinnedAnimationController->SetTrackEnable(7, true);
+			m_pSkinnedAnimationController->SetTrackPosition(1, 0.0f); //다시 재생할수있도록
 		}
 	}
 }
 
 void CTankPlayer::Move(DWORD dwDirection, float fDistance, bool bUpdateVelocity)
 {
-	if (dwDirection)
+
+
+	if (dwDirection& DIR_FORWARD)
 	{
-		m_pSkinnedAnimationController->SetTrackEnable(0, false);
-		m_pSkinnedAnimationController->SetTrackEnable(1, true);
+		if (Accelerate) {
+			for (int i = 0; i < 5; i++)m_pSkinnedAnimationController->SetTrackEnable(i, false);
+			m_pSkinnedAnimationController->SetTrackEnable(5, true);
+		
+				m_pSkinnedAnimationController->SetTrackEnable(6, false);
+				m_pSkinnedAnimationController->SetTrackEnable(7, false);
+		}
+		else {
+			m_pSkinnedAnimationController->SetTrackEnable(0, false);
+			m_pSkinnedAnimationController->SetTrackEnable(1, true);
+			for (int i = 2; i < 8; i++)
+				m_pSkinnedAnimationController->SetTrackEnable(i, false);
+		}
 	}
+	else if (dwDirection & DIR_BACKWARD) {
+		m_pSkinnedAnimationController->SetTrackEnable(0, false);
+		m_pSkinnedAnimationController->SetTrackEnable(1, false);
+		m_pSkinnedAnimationController->SetTrackEnable(2, true);
+		for (int i = 3; i < 8; i++)
+			m_pSkinnedAnimationController->SetTrackEnable(i, false);
+	}
+	else if (dwDirection & DIR_RIGHT) {
+		for(int i=0;i<3;i++)m_pSkinnedAnimationController->SetTrackEnable(i, false);
+		m_pSkinnedAnimationController->SetTrackEnable(3, true);
+		for (int i = 4; i < 8; i++)m_pSkinnedAnimationController->SetTrackEnable(i, false);
+	}else if (dwDirection & DIR_LEFT) {
+		for(int i=0;i<4;i++)m_pSkinnedAnimationController->SetTrackEnable(i, false);
+		m_pSkinnedAnimationController->SetTrackEnable(4, true);
+		for (int i = 5; i < 8; i++)m_pSkinnedAnimationController->SetTrackEnable(i, false);
+	}
+	
 
 	CPlayer::Move(dwDirection, fDistance, bUpdateVelocity);
 }
