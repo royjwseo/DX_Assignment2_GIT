@@ -245,6 +245,17 @@ void CPlayer::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamer
 	}
 }
 
+//void CPlayer::PreRender(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera,ID3D12Device* pd3dDevice, ID3D12CommandQueue* pd3dCommandQueue, ID3D12Fence* pd3dFence, HANDLE hFenceEvent)
+//{
+//	
+//		
+//	CPlayer::Render(pd3dCommandList, pCamera);
+//
+//		UINT64 nFenceValue = pd3dFence->GetCompletedValue();
+//		::WaitForGpuComplete(pd3dCommandQueue, pd3dFence, nFenceValue + 1, hFenceEvent);
+//	
+//}
+
 void CPlayer::SetOOBB(float fWidth, float fHeight, float fDepth)
 {
 	m_xmCollision = BoundingOrientedBox(XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(fWidth * 0.5f, fHeight * 0.5f, fDepth * 0.5f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));

@@ -567,6 +567,15 @@ public:
 	CTexture* m_pRandowmValueOnSphereTexture = NULL;
 
 	void ReleaseUploadBuffers();
+	//void UpdateVertexBufferPosition(XMFLOAT3 pos);
+	float CreationTime = 0.f;
+	float GetCreationTime() {
+		return CreationTime;
+	}
+	float lifeTime = 3.f;
+	float GetLifeTime() {
+		return lifeTime;
+	}
 
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 	virtual void OnPostRender();

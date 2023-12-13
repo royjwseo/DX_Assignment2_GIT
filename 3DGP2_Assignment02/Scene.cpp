@@ -225,14 +225,18 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 
 	m_ppEnvironmentMappingShaders[0] = new CDynamicCubeMappingShader(256);
 	m_ppEnvironmentMappingShaders[0]->CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature,0);
-	m_ppEnvironmentMappingShaders[0]->BuildObjects(pd3dDevice, pd3dCommandList, m_pTerrain);
+	m_ppEnvironmentMappingShaders[0]->BuildObjects(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature,m_pTerrain);
 
-	m_nParticleObjects = 1;
+	m_nParticleObjects = 4;
 	m_ppParticleObjects = new CParticleObject * [m_nParticleObjects];
 
-	m_ppParticleObjects[0] = new CParticleObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, XMFLOAT3(2256, 300.0f, 2256), XMFLOAT3(0.0f, 60.0f, 0.0f), 0.0f, XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(8.0f, 8.0f), MAX_PARTICLES);
+	m_ppParticleObjects[0] = new CParticleObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, XMFLOAT3(801.f, 400.f, 1444.f), XMFLOAT3(60.0f, 60.0f, 0.0f), 0.0f, XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(8.0f, 8.0f), MAX_PARTICLES);
+	m_ppParticleObjects[1] = new CParticleObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, XMFLOAT3(801.f, 400.f, 1444.f), XMFLOAT3(-60.0f, 60.0f,0.0f), 0.0f, XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(8.0f, 8.0f), MAX_PARTICLES);
+	m_ppParticleObjects[2] = new CParticleObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, XMFLOAT3(801.f, 400.f, 1444.f), XMFLOAT3(0.0f, 60.0f, 60.0f), 0.0f, XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(8.0f, 8.0f), MAX_PARTICLES);
+	m_ppParticleObjects[3] = new CParticleObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, XMFLOAT3(801.f, 400.f, 1444.f), XMFLOAT3(0.0f, 60.0f, -60.0f), 0.0f, XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(8.0f, 8.0f), MAX_PARTICLES);
 
-	
+
+
 	BuildDefaultLightsAndMaterials();
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
 }
@@ -463,8 +467,17 @@ void CScene::ReleaseUploadBuffers()
 	if (m_pTerrain) m_pTerrain->ReleaseUploadBuffers();
 	for (int i = 0; i < m_nEnvironmentMappingShaders; i++) m_ppEnvironmentMappingShaders[i]->ReleaseUploadBuffers();
 	for (int i = 0; i < m_nShaders; i++) m_ppShaders[i]->ReleaseUploadBuffers();
-	for (int i = 0; i < m_nParticleObjects; i++) m_ppParticleObjects[i]->ReleaseUploadBuffers();
+	
+	if (m_ppParticleObjects)
+	{
+		for (int i = 0; i < m_nParticleObjects; i++) {
+			if (m_ppParticleObjects[i] != nullptr) 
+				m_ppParticleObjects[i]->ReleaseUploadBuffers();
+		}
+	}
 }
+
+
 
 bool CScene::OnProcessingMouseMessage(HWND hWnd, UINT nMessageID, WPARAM wParam, LPARAM lParam)
 {
@@ -558,6 +571,10 @@ void CScene::AnimateObjects(float fTimeElapsed)
 	for (int i = 0; i < m_nShaders; i++) if (m_ppShaders[i]) m_ppShaders[i]->AnimateObjects(fTimeElapsed);
 	for (int i = 0; i < m_nEnvironmentMappingShaders; i++) m_ppEnvironmentMappingShaders[i]->AnimateObjects(fTimeElapsed);
 	
+	//if (m_ppParticleObjects) {
+	//	ParticleObjectPosition=m_pPlayer->GetPosition();
+	//}
+	//for (int i = 0; i < m_nParticleObjects; i++) m_ppParticleObjects[i]->UpdateVertexBufferPosition(m_pPlayer->GetPosition());
 
 	if (m_pLights)
 	{
@@ -566,6 +583,13 @@ void CScene::AnimateObjects(float fTimeElapsed)
 		m_pLights->m_pLights[2].m_xmf4Diffuse = XMFLOAT4(DirectionalLightPower[0], DirectionalLightPower[1], DirectionalLightPower[2], 1.0f);
 	}
 }
+
+//void CScene::UpdateVertexBufferPosition(XMFLOAT3 pos) {
+//	if (m_ppParticleObjects) {
+//		for (int i = 0; i < m_nParticleObjects; i++)
+//			m_ppParticleObjects[i]->UpdateVertexBufferPosition(ParticleObjectPosition);
+//	}
+//}
 
 void CScene::PrepareRender(ID3D12GraphicsCommandList* pd3dCommandList) {
 
@@ -623,10 +647,27 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera
 
 void CScene::RenderParticle(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
 {
-	for (int i = 0; i < m_nParticleObjects; i++) m_ppParticleObjects[i]->Render(pd3dCommandList, pCamera);
+	
+	//for (int i = 0; i < m_nParticleObjects; i++) m_ppParticleObjects[i]->Render(pd3dCommandList, pCamera);
+	if (m_ppParticleObjects)
+	{
+		for (int i = 0; i < m_nParticleObjects; i++) {
+			if (m_ppParticleObjects[i] != nullptr)
+				m_ppParticleObjects[i]-> Render(pd3dCommandList, pCamera);
+		}
+	}
+
 }
 
 void CScene::OnPostRenderParticle()
 {
-	for (int i = 0; i < m_nParticleObjects; i++) m_ppParticleObjects[i]->OnPostRender();
+//for (int i = 0; i < m_nParticleObjects; i++) m_ppParticleObjects[i]->OnPostRender();
+if (m_ppParticleObjects)
+{
+	for (int i = 0; i < m_nParticleObjects; i++) {
+		if (m_ppParticleObjects[i] != nullptr)
+			m_ppParticleObjects[i]->OnPostRender();
+	}
+}
+
 }

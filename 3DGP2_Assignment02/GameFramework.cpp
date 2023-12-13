@@ -419,7 +419,7 @@ void CGameFramework::BuildObjects()
 	m_pScene->m_pPlayer = m_pPlayer = pTankPlayer;
 	m_pCamera = m_pPlayer->GetCamera();
 
-	
+
 
 	m_pd3dCommandList->Close();
 	ID3D12CommandList *ppd3dCommandLists[] = { m_pd3dCommandList };
@@ -445,6 +445,7 @@ void CGameFramework::ReleaseObjects()
 
 void CGameFramework::ProcessInput()
 {
+	bool bSpacePressed = false; // 스페이스 키가 눌렸는지 여부를 추적하는 플래그
 	static UCHAR pKeysBuffer[256];
 	bool bProcessedByScene = false;
 	if (GetKeyboardState(pKeysBuffer) && m_pScene) bProcessedByScene = m_pScene->ProcessInput(pKeysBuffer);
@@ -457,8 +458,25 @@ void CGameFramework::ProcessInput()
 		if (pKeysBuffer[VK_RIGHT] & 0xF0) dwDirection |= DIR_RIGHT;
 		if (pKeysBuffer[VK_PRIOR] & 0xF0) dwDirection |= DIR_UP;
 		if (pKeysBuffer[VK_NEXT] & 0xF0) dwDirection |= DIR_DOWN;
-		if (pKeysBuffer[VK_SPACE] & 0xF0) {
+		float fTimeElapsed = m_GameTimer.GetTimeElapsed(); // 경과한 시간을 가져옵니다.
+
+
+		
+
+		// 스페이스 키가 눌렸을 때 한 번만 파티클을 생성합니다.
+		if ((pKeysBuffer[VK_SPACE] & 0xF0) && !bSpacePressed) {
 			m_pPlayer->Kick = true;
+			//if(m_pScene->m_ppParticleObjects[1]==nullptr)
+			//m_pScene->CreateParticle(m_pd3dDevice, m_pd3dCommandList);
+
+			//// 생성된 파티클의 수명을 설정합니다.
+			//if (m_pScene->m_ppParticleObjects[1] != nullptr) {
+			//	m_pScene->m_ppParticleObjects[1]->lifeTime = 3.0f; // 파티클 수명을 초 단위로 설정합니다.
+			//	// 파티클 생성 시간을 기록합니다.
+			//	m_pScene->m_ppParticleObjects[1]->CreationTime = m_GameTimer.GetTotalTime();
+			//}
+
+			//bSpacePressed = true; // 스페이스 키가 눌렸음을 표시합니다.
 		}
 		else {
 			m_pPlayer->Kick = false;
@@ -520,7 +538,15 @@ void CGameFramework::ProcessInput()
 			
 		}
 	}
-	
+
+	/*if (m_pScene->m_ppParticleObjects[1] != nullptr) {
+		float particleElapsed = m_GameTimer.GetTotalTime() - m_pScene->m_ppParticleObjects[1]->GetCreationTime();
+		if (particleElapsed >= m_pScene->m_ppParticleObjects[1]->GetLifeTime()) {
+			m_pScene->DeleteParticle(m_pd3dDevice, m_pd3dCommandList);
+			bSpacePressed = false;
+		}
+	}
+	*/
 		m_pPlayer->Update(m_GameTimer.GetTimeElapsed());
 	
 	
@@ -619,12 +645,14 @@ void CGameFramework::FrameAdvance()
 {    
 	m_GameTimer.Tick(0.0f);
 	
+	
 	ProcessInput();
 
     AnimateObjects();
-
+	
 	m_pScene->OnPreRender(m_pd3dDevice, m_pd3dCommandQueue, m_pd3dFence, m_hFenceEvent);
 	::WaitForGpuComplete(m_pd3dCommandQueue, m_pd3dFence, ++m_nFenceValues[m_nSwapChainBufferIndex], m_hFenceEvent);
+	
 /*
 내가 WaitForGPUComplete 넣은 이유는 무언가 환경매핑에서 Onprepare렌더에서 다양한 렌더타겟과 DSV를 사용하면서 
 GPU작업이 많고 커맨드리스트 및 명령어가 많아 파티클과 중첩되는것 같았다
@@ -650,11 +678,11 @@ GPU작업이 많고 커맨드리스트 및 명령어가 많아 파티클과 중첩되는것 같았다
 
 	m_pd3dCommandList->OMSetRenderTargets(1, &d3dRtvCPUDescriptorHandle, TRUE, &d3dDsvCPUDescriptorHandle);
 
-
+	
 
 	if (m_pScene)m_pScene->PrepareRender(m_pd3dCommandList);
 	
-	
+
 	UpdateShaderVariables();
 	
 	if (m_pScene) m_pScene->Render(m_pd3dCommandList, m_pCamera);

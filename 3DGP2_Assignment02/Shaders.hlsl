@@ -271,8 +271,11 @@ VS_TERRAIN_TESSELLATION_OUTPUT VSTerrainTessellation(VS_TERRAIN_INPUT input)
 	output.uv0 = input.uv0;
 	output.uv1 = input.uv1;
 
+
 	return(output);
 }
+
+
 
 struct HS_TERRAIN_TESSELLATION_CONSTANT
 {
@@ -407,9 +410,35 @@ float4 PSTerrainTessellation(DS_TERRAIN_TESSELLATION_OUTPUT input) : SV_TARGET
 	float4 cDetailTexColor = gtxtTerrainTexture[1].Sample(gssWrap, input.uv1);
 	float fAlpha = gtxtTerrainTexture[2].Sample(gssWrap, input.uv0);
 
+	
+
 	cColor = saturate(lerp(cBaseTexColor, cDetailTexColor, fAlpha));
+	
+
+
+	float minDistance = 1000.f; // 최소 거리
+	float maxDistance = 5000.f; // 최대 거리
+	float minAlpha = 0.2;
+	float maxAlpha = 0.51f;
+
+	float distanceToCameraXZ = length(float2(input.positionW.x - gvCameraPosition.x, input.positionW.z - gvCameraPosition.z));
+
+	// x와 z 축만 고려하여 카메라로부터의 거리 계산
+	float alpha;
+	if (distanceToCameraXZ <= minDistance) {
+		alpha = saturate((maxDistance - distanceToCameraXZ) / (maxDistance - minDistance));
+		cColor.a = lerp(minAlpha, maxAlpha, alpha);
+		//cColor.r = 1.f;
+	}
+	else {
+	//	alpha= 1.0f;
+		cColor.a = 1.f;
+		cColor.r = 0.f;
+	}
 	cColor = lerp(cColor, cIllumination, 0.6f);
-	return(cColor);
+
+	return cColor;
+
 }
 
 
@@ -555,7 +584,6 @@ void OutputParticleToStream(VS_PARTICLE_INPUT input, inout PointStream<VS_PARTIC
 
 	output.Append(input);
 }
-
 void EmmitParticles(VS_PARTICLE_INPUT input, inout PointStream<VS_PARTICLE_INPUT> output)
 {
 	float4 f4Random = RandomDirection(input.type);
@@ -564,8 +592,10 @@ void EmmitParticles(VS_PARTICLE_INPUT input, inout PointStream<VS_PARTICLE_INPUT
 		VS_PARTICLE_INPUT particle = input;
 
 		particle.type = PARTICLE_TYPE_SHELL;
-		particle.position = input.position + (input.velocity * gfElapsedTime * f4Random.xyz);
-		particle.velocity = input.velocity + (f4Random.xyz * 16.0f);
+		// 랜덤한 값들로 위치와 속도에 변화를 줌
+		float3 randomOffset = f4Random.xyz * 5.0f;
+		particle.position = input.position + (input.velocity * gfElapsedTime) + randomOffset;
+		particle.velocity = input.velocity + (f4Random.xyz * 25.0f);
 		particle.lifetime = SHELL_PARTICLE_LIFETIME + (f4Random.y * 0.5f);
 
 		output.Append(particle);
@@ -579,6 +609,31 @@ void EmmitParticles(VS_PARTICLE_INPUT input, inout PointStream<VS_PARTICLE_INPUT
 
 	output.Append(input);
 }
+
+
+//void EmmitParticles(VS_PARTICLE_INPUT input, inout PointStream<VS_PARTICLE_INPUT> output)
+//{
+//	float4 f4Random = RandomDirection(input.type);
+//	if (input.lifetime <= 0.0f)
+//	{
+//		VS_PARTICLE_INPUT particle = input;
+//
+//		particle.type = PARTICLE_TYPE_SHELL;
+//		particle.position = input.position + (input.velocity * gfElapsedTime * f4Random.xyz);
+//		particle.velocity = input.velocity + (f4Random.xyz * 16.0f);
+//		particle.lifetime = SHELL_PARTICLE_LIFETIME + (f4Random.y * 0.5f);
+//
+//		output.Append(particle);
+//
+//		input.lifetime = gfSecondsPerFirework * 0.2f + (f4Random.x * 0.4f);
+//	}
+//	else
+//	{
+//		input.lifetime -= gfElapsedTime;
+//	}
+//
+//	output.Append(input);
+//}
 
 void ShellParticles(VS_PARTICLE_INPUT input, inout PointStream<VS_PARTICLE_INPUT> output)
 {

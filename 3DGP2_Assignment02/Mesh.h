@@ -217,6 +217,13 @@ public:
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, int nSubSet);
 };
 
+class CTexturedRectMeshWithOneVertex : public CMesh
+{
+public:
+	CTexturedRectMeshWithOneVertex(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fWidth = 20.0f, float fHeight = 20.0f, float fDepth = 20.0f, float fxPosition = 0.0f, float fyPosition = 0.0f, float fzPosition = 0.0f);
+	virtual ~CTexturedRectMeshWithOneVertex();
+};
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 class CStandardMesh : public CMesh
@@ -418,6 +425,9 @@ public:
 
 	ID3D12Resource* m_pd3dDefaultBufferFilledSize = NULL;
 	ID3D12Resource* m_pd3dUploadBufferFilledSize = NULL;
+
+	//XMFLOAT3* m_pd3dUploadPositionBufferPos = NULL;
+
 	UINT64* m_pnUploadBufferFilledSize = NULL;
 #ifdef _WITH_QUERY_DATA_SO_STATISTICS
 	ID3D12QueryHeap* m_pd3dSOQueryHeap = NULL;
@@ -432,6 +442,8 @@ public:
 	virtual void CreateVertexBuffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, XMFLOAT3 xmf3Position, XMFLOAT3 xmf3Velocity, float fLifetime, XMFLOAT3 xmf3Acceleration, XMFLOAT3 xmf3Color, XMFLOAT2 xmf2Size);
 	virtual void CreateStreamOutputBuffer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, UINT nMaxParticles);
 
+	
+//	void UpdateVertexBufferPosition(XMFLOAT3 pos);
 	virtual void PreRender(ID3D12GraphicsCommandList* pd3dCommandList, int nPipelineState);
 	virtual void Render(ID3D12GraphicsCommandList* pd3dCommandList, int nPipelineState);
 	virtual void PostRender(ID3D12GraphicsCommandList* pd3dCommandList, int nPipelineState);
