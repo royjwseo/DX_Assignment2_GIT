@@ -685,14 +685,16 @@ GPU작업이 많고 커맨드리스트 및 명령어가 많아 파티클과 중첩되는것 같았다
 
 	UpdateShaderVariables();
 	
-	if (m_pScene) m_pScene->Render(m_pd3dCommandList, m_pCamera);
-	UpdateSkyBoxTextureIndex();
+	if (m_pScene) {
+		m_pScene->Render(m_pd3dCommandList, m_pCamera);
+		m_pScene->RenderBuildingAlone(m_pd3dCommandList, m_pCamera);
+	}UpdateSkyBoxTextureIndex();
 	
 
 #ifdef _WITH_PLAYER_TOP
 	m_pd3dCommandList->ClearDepthStencilView(d3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
 #endif
-	if (m_pPlayer) m_pPlayer->Render(m_pd3dCommandList, m_pCamera);
+	//if (m_pPlayer) m_pPlayer->Render(m_pd3dCommandList, m_pCamera);
 	//::WaitForGpuComplete(m_pd3dCommandQueue, m_pd3dFence, ++m_nFenceValues[m_nSwapChainBufferIndex], m_hFenceEvent);
 
 	m_pScene->RenderParticle(m_pd3dCommandList, m_pCamera);

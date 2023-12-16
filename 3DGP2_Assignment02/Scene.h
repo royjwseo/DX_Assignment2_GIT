@@ -96,6 +96,8 @@ public:
 	void Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera = NULL);
 	void PrepareRender(ID3D12GraphicsCommandList* pd3dCommandList);
 	
+	void RenderBuildingAlone(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
+
 	void OnPreRender(ID3D12Device* pd3dDevice, ID3D12CommandQueue* pd3dCommandQueue, ID3D12Fence* pd3dFence, HANDLE hFenceEvent);
 	void RenderParticle(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 //	void UpdateVertexBufferPosition(XMFLOAT3 pos);
@@ -123,8 +125,13 @@ public:
 	CDynamicCubeMappingShader** m_ppEnvironmentMappingShaders = NULL;
 	int							m_nEnvironmentMappingShaders = 0;
 
+	CDynamicRectMappingShader** m_ppEnvironmentMappingRectShaders = NULL;
+	int							m_nEnvironmentMappingRectShaders = 0;
+
 	CHeightMapTerrain* m_pTerrain = NULL;
 	
+	CGameObject* Building = NULL;
+
 	LIGHTS* m_pLights = NULL;
 	int									m_nLights = 0;
 

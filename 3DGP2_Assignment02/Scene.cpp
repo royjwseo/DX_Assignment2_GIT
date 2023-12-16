@@ -226,6 +226,13 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_ppEnvironmentMappingShaders[0] = new CDynamicCubeMappingShader(256);
 	m_ppEnvironmentMappingShaders[0]->CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature,0);
 	m_ppEnvironmentMappingShaders[0]->BuildObjects(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature,m_pTerrain);
+	
+	m_nEnvironmentMappingRectShaders = 1;
+	m_ppEnvironmentMappingRectShaders = new CDynamicRectMappingShader * [m_nEnvironmentMappingShaders];
+	
+	m_ppEnvironmentMappingRectShaders[0] = new CDynamicRectMappingShader(512);
+	m_ppEnvironmentMappingRectShaders[0]->CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature,0);
+	m_ppEnvironmentMappingRectShaders[0]->BuildObjects(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature,m_pTerrain);
 
 	m_nParticleObjects = 4;
 	m_ppParticleObjects = new CParticleObject * [m_nParticleObjects];
@@ -236,6 +243,8 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_ppParticleObjects[3] = new CParticleObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, XMFLOAT3(801.f, 400.f, 1444.f), XMFLOAT3(0.0f, 60.0f, -60.0f), 0.0f, XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(8.0f, 8.0f), MAX_PARTICLES);
 
 
+	Building=CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/WallBuilding.bin", NULL);
+	Building->SetPosition(2400, 400, 2890);
 
 	BuildDefaultLightsAndMaterials();
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
@@ -271,6 +280,18 @@ void CScene::ReleaseObjects()
 		}
 		delete[] m_ppEnvironmentMappingShaders;
 	}
+	if (m_ppEnvironmentMappingRectShaders)
+	{
+		for (int i = 0; i < m_nEnvironmentMappingRectShaders; i++)
+		{
+			m_ppEnvironmentMappingRectShaders[i]->ReleaseShaderVariables();
+			m_ppEnvironmentMappingRectShaders[i]->ReleaseObjects();
+			m_ppEnvironmentMappingRectShaders[i]->Release();
+		}
+		delete[] m_ppEnvironmentMappingRectShaders;
+	}
+
+	if (Building)delete Building;
 	if (m_pDescriptorHeap) delete m_pDescriptorHeap;
 
 	if (m_pSkyBox) delete m_pSkyBox;
@@ -286,7 +307,7 @@ ID3D12RootSignature* CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevic
 {
 	ID3D12RootSignature* pd3dGraphicsRootSignature = NULL;
 
-	D3D12_DESCRIPTOR_RANGE pd3dDescriptorRanges[6];
+	D3D12_DESCRIPTOR_RANGE pd3dDescriptorRanges[7];
 
 	pd3dDescriptorRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	pd3dDescriptorRanges[0].NumDescriptors = 7;
@@ -325,8 +346,14 @@ ID3D12RootSignature* CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevic
 	pd3dDescriptorRanges[5].RegisterSpace = 0;
 	pd3dDescriptorRanges[5].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
+	pd3dDescriptorRanges[6].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	pd3dDescriptorRanges[6].NumDescriptors = 1;
+	pd3dDescriptorRanges[6].BaseShaderRegister = 20; //t20: gxtxTextureRect
+	pd3dDescriptorRanges[6].RegisterSpace = 0;
+	pd3dDescriptorRanges[6].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-	D3D12_ROOT_PARAMETER pd3dRootParameters[12];
+
+	D3D12_ROOT_PARAMETER pd3dRootParameters[13];
 
 	pd3dRootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	pd3dRootParameters[0].Descriptor.ShaderRegister = 1; //Camera
@@ -389,6 +416,10 @@ ID3D12RootSignature* CScene::CreateGraphicsRootSignature(ID3D12Device* pd3dDevic
 	pd3dRootParameters[11].Descriptor.RegisterSpace = 0;
 	pd3dRootParameters[11].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 	
+	pd3dRootParameters[12].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	pd3dRootParameters[12].DescriptorTable.NumDescriptorRanges = 1;
+	pd3dRootParameters[12].DescriptorTable.pDescriptorRanges = &pd3dDescriptorRanges[6]; //t20, 
+	pd3dRootParameters[12].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
 	D3D12_STATIC_SAMPLER_DESC pd3dSamplerDescs[2];
 
@@ -466,6 +497,8 @@ void CScene::ReleaseUploadBuffers()
 	if (m_pSkyBox) m_pSkyBox->ReleaseUploadBuffers();
 	if (m_pTerrain) m_pTerrain->ReleaseUploadBuffers();
 	for (int i = 0; i < m_nEnvironmentMappingShaders; i++) m_ppEnvironmentMappingShaders[i]->ReleaseUploadBuffers();
+	for (int i = 0; i < m_nEnvironmentMappingRectShaders; i++) m_ppEnvironmentMappingRectShaders[i]->ReleaseUploadBuffers();
+
 	for (int i = 0; i < m_nShaders; i++) m_ppShaders[i]->ReleaseUploadBuffers();
 	
 	if (m_ppParticleObjects)
@@ -610,8 +643,14 @@ void CScene::OnPreRender(ID3D12Device* pd3dDevice, ID3D12CommandQueue* pd3dComma
 
 	for (int i = 0; i < m_nEnvironmentMappingShaders; i++)
 	{
-		m_ppEnvironmentMappingShaders[i]->OnPreRender(pd3dDevice, pd3dCommandQueue, pd3dFence, hFenceEvent, this);
+		m_ppEnvironmentMappingShaders[i]->OnPreRender(pd3dDevice, pd3dCommandQueue, pd3dFence, hFenceEvent, this,m_pPlayer);
 	}
+	for (int i = 0; i < m_nEnvironmentMappingRectShaders; i++)
+	{
+		m_ppEnvironmentMappingRectShaders[i]->OnPreRender(pd3dDevice, pd3dCommandQueue, pd3dFence, hFenceEvent, this, m_pPlayer);
+	}
+
+
 }
 
 void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
@@ -628,13 +667,25 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera
 	if (m_pSkyBox) m_pSkyBox->Render(pd3dCommandList, pCamera);
 	
 	if (m_pTerrain) m_pTerrain->Render(pd3dCommandList, pCamera);
+
+	m_pPlayer->Render(pd3dCommandList, pCamera);
+
 	for (int i = 0; i < m_nEnvironmentMappingShaders; i++)
 	{
 		m_ppEnvironmentMappingShaders[i]->Render(pd3dCommandList, pCamera);
 	}
+	for (int i = 0; i < m_nEnvironmentMappingRectShaders; i++)
+	{
+		m_ppEnvironmentMappingRectShaders[i]->Render(pd3dCommandList, pCamera);
+	}
+
 
 	
 	//for (int i = 0; i < m_nShaders; i++) if (m_ppShaders[i]) m_ppShaders[i]->Render(pd3dCommandList, pCamera);
+}
+
+void CScene::RenderBuildingAlone(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera) {
+	if (Building) Building->Render(pd3dCommandList, pCamera);
 }
 
 //void CScene::RenderEnvironmentMappingSpheres(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera) {

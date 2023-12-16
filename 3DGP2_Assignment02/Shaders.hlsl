@@ -485,6 +485,8 @@ float4 PSCubeMapping(VS_LIGHTING_OUTPUT input) : SV_Target
 		//return(cIllumination * cCubeTextureColor);
 }
 
+
+
 //---------------------------------
 
 
@@ -830,4 +832,66 @@ VS_STANDARD_OUTPUT VSSkinnedAnimationStandard(VS_SKINNED_STANDARD_INPUT input)
 	output.uv = input.uv;
 
 	return(output);
+}
+
+
+
+VS_LIGHTING_OUTPUT VSRectMapping(VS_LIGHTING_INPUT input)
+{
+	VS_LIGHTING_OUTPUT output;
+
+	output.positionW = mul(float4(input.position, 1.0f), gmtxGameObject).xyz;
+	//	output.positionW = (float3)mul(float4(input.position, 1.0f), gmtxWorld);
+	output.normalW = mul(float4(input.normal, 0.0f), gmtxGameObject).xyz;
+	//	output.normalW = mul(input.normal, (float3x3)gmtxWorld);
+	output.position = mul(mul(float4(output.positionW, 1.0f), gmtxView), gmtxProjection);
+
+	return(output);
+}
+
+
+
+Texture2D gtxtTextureRect: register(t20);
+float4 PSRectMapping(VS_LIGHTING_OUTPUT input) : SV_Target
+{
+	input.normalW = normalize(input.normalW);
+
+	float4 cIllumination = Lighting(input.positionW, input.normalW);
+
+	float3 vFromCamera = normalize(input.positionW - gvCameraPosition.xyz);
+	float3 vReflected = normalize(reflect(vFromCamera, input.normalW));
+	float4 cCubeTextureColor = gtxtTextureRect.Sample(gssWrap, vReflected);
+
+	//return(float4(vReflected * 0.5f + 0.5f, 1.0f));
+		return(cCubeTextureColor);
+		//return(cIllumination * cCubeTextureColor);
+}
+
+struct VS_BILLBOARD_INPUT
+{
+	float3 position : POSITION;
+	float2 uv : TEXCOORD;
+};
+
+struct VS_BILLBOARD_OUTPUT
+{
+	float4 position : SV_POSITION;
+	float2 uv : TEXCOORD;
+};
+
+VS_BILLBOARD_OUTPUT VSBillboard(VS_BILLBOARD_INPUT input)
+{
+	VS_BILLBOARD_OUTPUT output;
+
+	output.position = mul(mul(mul(float4(input.position, 1.0f), gmtxGameObject), gmtxView), gmtxProjection);
+	output.uv = input.uv;
+
+	return(output);
+}
+
+
+float4 PSBillboard(VS_BILLBOARD_OUTPUT input) :SV_TARGET
+{
+	float4 cColor = gtxtTextureRect.Sample(gssWrap,input.uv);
+	return cColor;
 }

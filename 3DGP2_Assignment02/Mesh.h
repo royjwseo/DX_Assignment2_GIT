@@ -75,6 +75,24 @@ public:
 	~CTexturedVertex() { }
 };
 
+class CNormalTexturedOneVertex : public CVertex
+{
+public:
+	XMFLOAT2						m_xmf2TexCoord;
+	XMFLOAT3						m_xmf3Normal;
+
+
+public:
+	CNormalTexturedOneVertex() { m_xmf3Position = XMFLOAT3(0.0f, 0.0f, 0.0f); m_xmf2TexCoord = XMFLOAT2(0.0f, 0.0f); m_xmf3Normal = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	}
+	CNormalTexturedOneVertex(float x, float y, float z, XMFLOAT2 xmf2TexCoord, XMFLOAT3 xmf3Normal = XMFLOAT3(0.0f, 0.0f, 0.0f)) { m_xmf3Position = XMFLOAT3(x, y, z); m_xmf2TexCoord = xmf2TexCoord; m_xmf3Normal = xmf3Normal;
+	}
+	CNormalTexturedOneVertex(XMFLOAT3 xmf3Position, XMFLOAT2 xmf2TexCoord, XMFLOAT3 xmf3Normal = XMFLOAT3(0.0f, 0.0f, 0.0f)) { m_xmf3Position = xmf3Position; m_xmf2TexCoord = xmf2TexCoord; m_xmf3Normal = xmf3Normal;
+	}
+	~CNormalTexturedOneVertex() { }
+};
+
+
 class CIlluminatedVertex : public CVertex
 {
 protected:
@@ -223,6 +241,7 @@ public:
 	CTexturedRectMeshWithOneVertex(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, float fWidth = 20.0f, float fHeight = 20.0f, float fDepth = 20.0f, float fxPosition = 0.0f, float fyPosition = 0.0f, float fzPosition = 0.0f);
 	virtual ~CTexturedRectMeshWithOneVertex();
 };
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //

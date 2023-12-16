@@ -770,7 +770,7 @@ void CDynamicCubeMappingShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12Gra
 	pd3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_pd3dCommandAllocator, NULL, __uuidof(ID3D12GraphicsCommandList), (void**)&m_pd3dCommandList);
 	m_pd3dCommandList->Close();
 
-	m_nDynamicCubes = 2;
+	m_nDynamicCubes = 1;
 	m_ppDynamicCubes = new CGameObject * [m_nDynamicCubes];
 	CGameObject* pBuilding = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/WallBuilding.bin", this);
 
@@ -803,26 +803,26 @@ void CDynamicCubeMappingShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12Gra
 		float xPosition = xmf2TerrainCenter.x + ((i + 1) * 150.0f) * ((i % 2) ? +1.0f : -1.0f);
 		float zPosition = xmf2TerrainCenter.y + ((i + 1) * 150.0f) * ((i % 2) ? +1.0f : -1.0f);
 		float fHeight = pTerrain->GetHeight(xPosition, zPosition);
-		m_ppDynamicCubes[i]->SetPosition(801.f, 400.f, 1444.f);
+		m_ppDynamicCubes[i]->SetPosition(801.f*(i+1), 400.f, 1444.f);
 
 		d3dDsvCPUDescriptorHandle.ptr += ::gnDsvDescriptorIncrementSize;
 		d3dRtvCPUDescriptorHandle.ptr += (::gnRtvDescriptorIncrementSize * 6);
 	}
-	for (int i = 1; i < 2; i++)
-	{
-		m_ppDynamicCubes[i] = new CGameObject();
-			//new CDynamicCubeMappingObject(pd3dDevice, pd3dCommandList, m_nCubeMapSize, d3dDsvCPUDescriptorHandle, d3dRtvCPUDescriptorHandle, this);
+	//for (int i = 1; i < 2; i++)
+	//{
+	//	m_ppDynamicCubes[i] = new CGameObject();
+	//		//new CDynamicCubeMappingObject(pd3dDevice, pd3dCommandList, m_nCubeMapSize, d3dDsvCPUDescriptorHandle, d3dRtvCPUDescriptorHandle, this);
 
-		m_ppDynamicCubes[i]->SetChild(pBuilding);
-		//m_ppDynamicCubes[i]->SetMesh( pTexturedRect);
-		float xPosition = 2127;
-		float zPosition = 2755;
-		float fHeight = pTerrain->GetHeight(xPosition, zPosition);
-		m_ppDynamicCubes[i]->SetPosition(xPosition, fHeight, zPosition);
+	//	m_ppDynamicCubes[i]->SetChild(pBuilding);
+	//	//m_ppDynamicCubes[i]->SetMesh( pTexturedRect);
+	//	float xPosition = 2127;
+	//	float zPosition = 2755;
+	//	float fHeight = pTerrain->GetHeight(xPosition, zPosition);
+	//	m_ppDynamicCubes[i]->SetPosition(xPosition, fHeight, zPosition);
 
-		d3dDsvCPUDescriptorHandle.ptr += ::gnDsvDescriptorIncrementSize;
-		d3dRtvCPUDescriptorHandle.ptr += (::gnRtvDescriptorIncrementSize * 6);
-	}
+	//	d3dDsvCPUDescriptorHandle.ptr += ::gnDsvDescriptorIncrementSize;
+	//	d3dRtvCPUDescriptorHandle.ptr += (::gnRtvDescriptorIncrementSize * 6);
+	//}
 }
 
 void CDynamicCubeMappingShader::ReleaseObjects()
@@ -848,14 +848,14 @@ void CDynamicCubeMappingShader::ReleaseUploadBuffers()
 
 }
 
-void CDynamicCubeMappingShader::OnPreRender(ID3D12Device* pd3dDevice, ID3D12CommandQueue* pd3dCommandQueue, ID3D12Fence* pd3dFence, HANDLE hFenceEvent, CScene* pScene)
+void CDynamicCubeMappingShader::OnPreRender(ID3D12Device* pd3dDevice, ID3D12CommandQueue* pd3dCommandQueue, ID3D12Fence* pd3dFence, HANDLE hFenceEvent, CScene* pScene, CPlayer* pPlayer)
 {
 	for (int i = 0; i < m_nDynamicCubes; i++)
 	{
 		m_pd3dCommandAllocator->Reset();
 		m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL);
 
-		m_ppDynamicCubes[i]->OnPreRender(m_pd3dCommandList, pScene);
+		m_ppDynamicCubes[i]->OnPreRender(m_pd3dCommandList, pScene,pPlayer);
 
 		m_pd3dCommandList->Close();
 
@@ -1048,3 +1048,181 @@ void CParticleShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignature
 	CShader::CreateShader(pd3dDevice, pd3dGraphicsRootSignature, 1); //Draw Pipeline State
 }
 
+
+
+
+CDynamicRectMappingShader::CDynamicRectMappingShader(UINT nCubeMapSize)
+{
+	m_nCubeMapSize = nCubeMapSize;
+}
+
+CDynamicRectMappingShader::~CDynamicRectMappingShader()
+{
+}
+
+D3D12_INPUT_LAYOUT_DESC CDynamicRectMappingShader::CreateInputLayout(int nPipelineState)
+{
+	UINT nInputElementDescs = 2;
+	D3D12_INPUT_ELEMENT_DESC* pd3dInputElementDescs = new D3D12_INPUT_ELEMENT_DESC[nInputElementDescs];
+
+	pd3dInputElementDescs[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	pd3dInputElementDescs[1] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+
+	D3D12_INPUT_LAYOUT_DESC d3dInputLayoutDesc;
+	d3dInputLayoutDesc.pInputElementDescs = pd3dInputElementDescs;
+	d3dInputLayoutDesc.NumElements = nInputElementDescs;
+
+	return(d3dInputLayoutDesc);
+}
+
+D3D12_SHADER_BYTECODE CDynamicRectMappingShader::CreateVertexShader(ID3DBlob** ppd3dShaderBlob, int nPipelineState)
+{
+	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "VSBillboard", "vs_5_1", ppd3dShaderBlob));
+}
+
+D3D12_SHADER_BYTECODE CDynamicRectMappingShader::CreatePixelShader(ID3DBlob** ppd3dShaderBlob, int nPipelineState)
+{
+	return(CShader::CompileShaderFromFile(L"Shaders.hlsl", "PSBillboard", "ps_5_1", ppd3dShaderBlob));
+}
+
+void CDynamicRectMappingShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd3dCommandList, ID3D12RootSignature* pd3dGraphicsRootSignature, void* pContext)
+{
+	pd3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), (void**)&m_pd3dCommandAllocator);
+	pd3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_pd3dCommandAllocator, NULL, __uuidof(ID3D12GraphicsCommandList), (void**)&m_pd3dCommandList);
+	m_pd3dCommandList->Close();
+
+	m_nDynamicRects = 4;
+	m_ppDynamicRects = new CGameObject * [m_nDynamicRects];
+	CGameObject* pBuilding = CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, pd3dGraphicsRootSignature, "Model/WallBuilding.bin", this);
+
+	D3D12_DESCRIPTOR_HEAP_DESC d3dDescriptorHeapDesc;
+	d3dDescriptorHeapDesc.NumDescriptors = m_nDynamicRects;
+	d3dDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	d3dDescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	d3dDescriptorHeapDesc.NodeMask = 0;
+	HRESULT hResult = pd3dDevice->CreateDescriptorHeap(&d3dDescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&m_pd3dDsvDescriptorHeap);
+
+	D3D12_CPU_DESCRIPTOR_HANDLE d3dDsvCPUDescriptorHandle = m_pd3dDsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+
+	d3dDescriptorHeapDesc.NumDescriptors = m_nDynamicRects;
+	d3dDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	pd3dDevice->CreateDescriptorHeap(&d3dDescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&m_pd3dRtvDescriptorHeap);
+
+	D3D12_CPU_DESCRIPTOR_HANDLE d3dRtvCPUDescriptorHandle = m_pd3dRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	CTexturedRectMeshWithOneVertex* pTexturedRect2[4];
+	for (int i = 0; i < 2; i++) {
+		
+		pTexturedRect2[i] = new CTexturedRectMeshWithOneVertex(pd3dDevice, pd3dCommandList, 150, 150, 0, 0, 0, i*0.1);
+		//0번이 +z  //1번이 -z
+	}
+	for (int i = 2; i < 4; i++) {
+		pTexturedRect2[i] = new CTexturedRectMeshWithOneVertex(pd3dDevice, pd3dCommandList, 0, 150, 150, (i-2)*0.1, 0, 0);
+		//3번이  +x , 4번이 -x
+	}
+	CHeightMapTerrain* pTerrain = (CHeightMapTerrain*)pContext;
+	XMFLOAT2 xmf2TerrainCenter = XMFLOAT2(pTerrain->GetWidth() * 0.5f, pTerrain->GetLength() * 0.5f);
+
+	for (int i = 0; i < 2; i++)
+	{
+		m_ppDynamicRects[i] = new CDynamicRectMappingObject(pd3dDevice, pd3dCommandList, m_nCubeMapSize, d3dDsvCPUDescriptorHandle, d3dRtvCPUDescriptorHandle, this);
+
+		m_ppDynamicRects[i]->SetMesh(0, pTexturedRect2[i]);
+	//	m_ppDynamicRects[i]->SetChild(pBuilding);
+			float xPosition = 2240; 
+			float zPosition = 2740+i*155;
+			float fHeight = pTerrain->GetHeight(xPosition, zPosition);
+			m_ppDynamicRects[i]->SetPosition(xPosition, 450, zPosition);
+
+		d3dDsvCPUDescriptorHandle.ptr += ::gnDsvDescriptorIncrementSize;
+		d3dRtvCPUDescriptorHandle.ptr += (::gnRtvDescriptorIncrementSize);
+	}
+	for (int i = 2; i < 4; i++)
+	{
+		m_ppDynamicRects[i] = new CDynamicRectMappingObject(pd3dDevice, pd3dCommandList, m_nCubeMapSize, d3dDsvCPUDescriptorHandle, d3dRtvCPUDescriptorHandle, this);
+
+		m_ppDynamicRects[i]->SetMesh(0, pTexturedRect2[i]);
+		//	m_ppDynamicRects[i]->SetChild(pBuilding);
+		float xPosition = 2165+(i-2)*155; //2315
+		float zPosition = 2815 ; 
+		float fHeight = pTerrain->GetHeight(xPosition, zPosition);
+		m_ppDynamicRects[i]->SetPosition(xPosition, 450, zPosition);
+
+		d3dDsvCPUDescriptorHandle.ptr += ::gnDsvDescriptorIncrementSize;
+		d3dRtvCPUDescriptorHandle.ptr += (::gnRtvDescriptorIncrementSize);
+	}
+
+	
+	
+}
+
+void CDynamicRectMappingShader::ReleaseObjects()
+{
+	if (m_ppDynamicRects)
+	{
+		for (int j = 0; j < m_nDynamicRects; j++) if (m_ppDynamicRects[j]) delete m_ppDynamicRects[j];
+		delete[] m_ppDynamicRects;
+	}
+	if (m_pd3dDsvDescriptorHeap) m_pd3dDsvDescriptorHeap->Release();
+	if (m_pd3dRtvDescriptorHeap) m_pd3dRtvDescriptorHeap->Release();
+
+	if (m_pd3dCommandAllocator) m_pd3dCommandAllocator->Release();
+	if (m_pd3dCommandList) m_pd3dCommandList->Release();
+}
+
+void CDynamicRectMappingShader::ReleaseUploadBuffers()
+{
+	if (m_ppDynamicRects)
+	{
+		for (int j = 0; j < m_nDynamicRects; j++) if (m_ppDynamicRects[j]) m_ppDynamicRects[j]->ReleaseUploadBuffers();
+	}
+
+}
+
+void CDynamicRectMappingShader::OnPreRender(ID3D12Device* pd3dDevice, ID3D12CommandQueue* pd3dCommandQueue, ID3D12Fence* pd3dFence, HANDLE hFenceEvent, CScene* pScene, CPlayer* pPlayer)
+{
+	for (int i = 0; i < m_nDynamicRects; i++)
+	{
+		m_pd3dCommandAllocator->Reset();
+		m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL);
+
+		static_cast<CDynamicRectMappingObject*>(m_ppDynamicRects[i])->OnPreRender(m_pd3dCommandList, pScene,pPlayer,i);
+
+		m_pd3dCommandList->Close();
+
+		ID3D12CommandList* ppd3dCommandLists[] = { m_pd3dCommandList };
+		pd3dCommandQueue->ExecuteCommandLists(1, ppd3dCommandLists);
+
+		UINT64 nFenceValue = pd3dFence->GetCompletedValue();
+		::WaitForGpuComplete(pd3dCommandQueue, pd3dFence, nFenceValue + 1, hFenceEvent);
+	}
+}
+
+void CDynamicRectMappingShader::CreateShader(ID3D12Device* pd3dDevice, ID3D12RootSignature* pd3dGraphicsRootSignature, int nPipelineState)
+{
+	m_nPipelineStates = 1;
+	m_ppd3dPipelineStates = new ID3D12PipelineState * [m_nPipelineStates];
+
+	CShader::CreateShader(pd3dDevice, pd3dGraphicsRootSignature, 0);
+}
+
+void CDynamicRectMappingShader::AnimateObjects(float fTimeElapsed)
+{
+	for (int j = 0; j < m_nDynamicRects; j++)
+	{
+		m_ppDynamicRects[j]->Animate(fTimeElapsed);
+	}
+}
+
+void CDynamicRectMappingShader::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera)
+{
+	CShader::Render(pd3dCommandList, pCamera);
+
+	for (int j = 0; j < m_nDynamicRects; j++)
+	{
+		if (m_ppDynamicRects[j]) {
+			m_ppDynamicRects[j]->UpdateTransform(NULL);
+			m_ppDynamicRects[j]->Render(pd3dCommandList, pCamera);
+		}
+	}
+
+}
