@@ -14,11 +14,13 @@
 
 
 <실행 결과>
- 
-[위에서 바라다본 씬 장면]
- 
-[애니메이션 동작 수행중인 플레이어 모델]
 
+
+[위에서 바라다본 씬 장면]
+ ![image](https://github.com/user-attachments/assets/7687570b-95ab-4b93-b511-9f3db2c1fc0c)
+
+[애니메이션 동작 수행중인 플레이어 모델]
+ ![image](https://github.com/user-attachments/assets/bfb6f30a-6eb3-4e6b-85de-cac84643b17a)
 
 
 
@@ -27,85 +29,122 @@
 
 1.	SKYBOX
 -	스카이박스는 기존의 텍스쳐 큐브 형태로 구현하였다. 다만, 변경사항은 스카이박스를 총 16개의 텍스쳐를 로드해서 밤낮의 변화를 보이려고 하였다. 그러기 위해서는 처음에 텍스쳐 16개짜리를 하나의 루트파라메터에 로드하고, 루트 파라메터는 총 16개의 텍스쳐 큐브를 받도록 하였다. 이렇게 16개의 텍스쳐 큐브를 셰이더에 전달하고 게임프레임워크 파일에서 전달하는 시간 관련 상수들을 이용하여 셰이더에서 어떤 텍스쳐를 매핑할지 정하는 방식으로 구현하였다. 그러나 문제점이 있었다. 환경매핑을 구현하다 보니 PRERENDER에서 미리 렌더를 하고 씬을 렌더하기 때문에 스카이박스 픽셀 셰이더에서 샘플링 및 매핑될 텍스쳐를 바꾸어줘도 환경매핑 오브젝트에 반사되지 않는다는 점이었다. 그래서 다른 방법을 찾아야 했다.
--	 
+-	 ![image](https://github.com/user-attachments/assets/180e5754-b7bb-4f62-a573-ea2eddea713b)
+
 -	[현재 스카이박스가 바뀌어도 환경매핑에 반영안되는 모습]
--	 
+-	 ![image](https://github.com/user-attachments/assets/97e2977d-d199-4f72-8f87-af87c6f1c6c4)
+
 -	[추가 구현 내용]
 	주석 달린 부분이 텍스쳐 16개 읽어와 셰이더에서 시간에 따라 매핑될 텍스쳐 변경 / 현재 주석 안달린 부분은 텍스쳐의 SRV핸들을 시간에 따라 바꾸어 셰이더에 전달
 -	그렇게 다른 방법을 고민하다가 똑같이 텍스쳐는 스카이박스를 생성할 때 16개를 로드하되, 각 텍스쳐는 SRV뷰를 만들 때 핸들을 가지도록 되어 있으므로, 이를 SetGraphicsRootDescriptorTable함수로 SRV를 테이블에 Set할 때 각 텍스쳐의 핸들만 다르게 변화시켜주어 Set하면 되지 않을까 라는 생각을 하게 되었다. 그 결과 똑같이 시간 순에 따라 전달되는 텍스쳐는 다르게 되지만, 시간에 따른 변화를 주는건 cpp파일에서 해주어야하고 그러기 위해 stdafx헤더에 글로벌 int변수 extern으로 하나 만들어 게임프레임워크 cpp에서 시간에 따라 FrameAdvance에서 이 변수를 바꾸어주고 오브젝트.cpp에서 이 변수에 따라 Set하는 핸들이 달라지도록 구현하였다.
- 
+ ![image](https://github.com/user-attachments/assets/fe497710-c017-4a9d-ab17-e4e53d9d281c)
+
 [각 텍스쳐는 직접 6개의 jpg파일을 텍스쳐 큐브로 DirectX Texture Tool을 사용하여 16개를 제작하였다.] 
 	CTexture(16,RESOURCE_TEXTURE_CUBE,0,1) 하나의 루트 파라메터를 사용하며 16개의 Texture리소스 배열을 할당하도록하여 핸들만 바꾸는 형태로 구현.
- 
- 
- 
+ ![image](https://github.com/user-attachments/assets/c8f49a2d-6b23-4a5d-aeb5-0fe89c326c9e)
+
+ ![image](https://github.com/user-attachments/assets/730eff9f-f0db-4f6d-b5cb-b87e4a6ae8e5)
+
+ ![image](https://github.com/user-attachments/assets/1ec3ddb8-6cf6-4f7f-8b79-ad289459ef4a)
+![image](https://github.com/user-attachments/assets/9936e9b5-e4f6-46a9-bdd7-ace4b0025254)
+
  
 [하나씩 루트 테이블에 Set하도록]
  
+![image](https://github.com/user-attachments/assets/05972a20-2c15-41e4-9713-e795015dc5e3)
 
- 
+ ![image](https://github.com/user-attachments/assets/c94928f6-d711-4c3c-a019-ce9fb41c7807)
+
 [결과: 스카이박스가 매핑되는 텍스쳐에 따라 잘 반사가 되어 밤낮이 표현됨]
 	또한 스카이박스가 환경매핑 구에 반사되어 태양이 반사되어 밤낮이 실시간으로 변하는 모습을 관찰할 수 있으며, 이를 더 잘 표현하기 위해서 Directional Light를 하나 켜놓고 같은 시간의 틱마다 조명의 밝기를 스카이박스 텍스쳐의 표현에 맞게끔 조절하여 밤 낮을 실제로 느낄 수 있도록 표현하였다. 
  [시간에 따른 조명의 세기 변경]
+![image](https://github.com/user-attachments/assets/8eb3e493-a768-4b35-b8de-15ee5eeec23c)
+
  [밤]  [낮]
+ ![image](https://github.com/user-attachments/assets/59b7cbe2-e2c4-4f05-9378-a31cd0d524ad)
+![image](https://github.com/user-attachments/assets/16108cab-867d-4936-bb9d-eeb31b050883)
+
 2.	Terrain With Tessellation
 	기존의 지형은 정점단위로 Scale Factor를 받아 메쉬의 크기를 늘려 그만큼 정점의 수를 for문을 통해 늘려가는 방식으로 확장하였다. 하지만, 이번에 적용하는 테셀레이션 기법은 조금 다르다. 기본 하이트 맵 이미지에 해당하는 가로 세로 크기에 해당하는 정점을 메쉬로 받고 이를 그대로 VS에 넘겨주게 된다. 이 VS에 넘겨준 정점들은 테셀레이션을 적용하기 위하여 HS로 넘어가게 되며, HS에서는 SystemValue값인 TessFactor를 4개, InsideTessFactor를 2개를 받을 수 있도록 구성하였다. 그 이유는 패치단위로 구성을 할 것인데 도메인이 Quad로 지정할 것이기 때문이다. 일단 이렇게 헐셰이더 및 도메인 셰이더를 사용하기 위해서는 루트 시그니쳐 플래그에서 이들을 사용하지 않겠다고 선언한 플래그들을 제거하여 주고, 각각 HullShader, DomainShader를 파이프라인에 추가해주어야 한다. 이러한 세팅을 마쳤다면 이제 본격적으로 HS에서 각 정점을 패치단위로 입력받아 패치단위로 카메라와의 거리에 따라 쪼개지는 정도를 정하게 된다. 그렇게 HS에서 쪼개지는 정도를 정하여 테셀레이터에 전달하여 그 반환을 받게 되면 패치의 형태로 추가된 제어점들에 대해 반환을 도메인 셰이더에서 받게 된다. 도메인 셰이더는 이 점들에 대한 처리를 하기 위해 System Value값인 SV_DomainLocation을 사용하여 셰이더코드에선 Bezier형태의 패치로 pos를 변형시키는 것을 확인 할 수 있다. 그 결과 테셀레이션은 카메라와의 거리에 따라 어라만큼 쪼갤지 헐셰이더와 시스템 밸류값으로 정해주고 도메인셰이더는 반환받은 제어점이 추가된 패치들을 알고리즘으로 다시 월드에 갔다 놓는 형태가 된다.
- 
- 
+ ![image](https://github.com/user-attachments/assets/82deee72-34a5-4c38-bee6-8db2f7bf9be2)
+
+ ![image](https://github.com/user-attachments/assets/41b38e77-5d6c-4e43-880e-4fc521b9a585)
+
 [카메라와의 거리에 따라 가까운 곳은 정밀하게, 먼 곳은 덜 쪼개지게 동적으로 테셀레이션 적용]
 
 
 [추가 구현 사항]
 	지형에 대해 실험을 하나 해본 것 중, 카메라와의 거리에 따라 원 형태로 alpha값을 거리에 따라 보간하여 지정하여 동적으로 알파블렌딩을 수행하였다. 이는 졸업작품에 구현하고 싶은 투시 레이더 망을 실험해보기 위해 적용해보았는데, 이를 실험해 봄으로써 주의 해야할 사항들이 꽤 있음을 알아볼 수 있었다. 일단 하나의 오브젝트인 Terrain에 대해 구간별로 Render하는 순서는 코드상으로 따로 정해져 있지 않기 때문에 특정 방향으로 Render가 수행됨을 알파블렌딩을 통해 알 수 있었다. 그 이유는 알파 블렌딩을 수행함에 있어 특정 방향에서 뒤를 바라보면 투명한 지형 부분 뒤에 투시되는 지형 부분이 안보인다. 하지만 그 반대방향을 바라보면 투명한 지형 뒤에 투시되는 지형이 보인다. 이로써 알게된 사실은 하나의 오브젝트더라도 그리는 순서에 따라 투명->불투명, 불투명->투명한 정점들이 그려지는 순서 때문에 이와 같은 현상이 나타나는 것이었다. 이는 더 명확한게, 측면에서 지형을 바라보면 특정 라인 기준 지형이 반토막으로 투시되는 것을 알 수 있다. 그러므로 블렌딩을 통해 무언가를 동적으로 구현하기 위해서는 렌더링 순서에 의존할 수 밖에 없는 한계를 이번 과제를 통해 알게 되었다.
- 
+ ![image](https://github.com/user-attachments/assets/a64e0a00-67e9-4b3c-9af7-1b8072ff9057)
+
 [카메라와의 거리에 따른 알파값 보간]
- 
+ ![image](https://github.com/user-attachments/assets/37fd7262-2d13-4f3c-95ad-afe3490c8500)
+
 [지형이 카메라와의 거리가 가까워 알파값이 높아 블렌딩 수행되어 뒤에 지형이 투시되는 모습]
 
 	또한 패치단위로 테셀레이션을 적용하여 높이 값이 부정확한 결과가 나타난다. 그러기 위해 높이를 삼중보간하는 공식을 추가하여 현재 높이를 구해주고 있다.
- 
+ ![image](https://github.com/user-attachments/assets/5d884ee0-4217-4692-a02a-573b33ed714f)
+
 [높이 3중 보간 계산]
+![image](https://github.com/user-attachments/assets/172ace3a-9887-47f1-b27c-496ff6f865d6)
+
 3.	Environment Mapping
 	환경매핑은 일단 구부터 적용하였다. 구는 둥근형태로 이루어져있기 때문에 텍스쳐가 큐브형태로 매핑되면 전 방향 어느정도 표현이 될 것이라고 생각하였다. 이를 위해 DSV 힙이 필요하며, RTV도 힙이 필요하였다, 또한 큐브 맵은 6개의 면으로 이루어져있으므로 렌더타겟이 6개가 필요한 이유이다. 각가의 장면을 특정 위치로부터 보는 시점을 반사시켜 텍스쳐에 저장하여 매핑을 실시간으로 1pass때 해주고 2pass 렌더때 적용하면 동적으로 변하는 것처럼 보일 수 있는 환경 매핑 기법이다. 이를 위해서 환경매핑 구 오브젝트를 생성 시, 카메라를 총 6개를 만들어주고 각각은 RenderTargetView를 만들어주고 텍스쳐 큐브도 미리 만들어준다. 이를 만들기 위한 depthstencilview도 만들어준다. 그리고 이후의 1pass rendering때 camera들을 이용하여 각각이 바라보는 Look과 Up벡터를 지정해주고, RenderTarget에 대한 초기설정 및 초기화를 해준 이후 씬 및 환경매핑에 반사될 객체들을 Render해준다. 그 이후 아까 만든 큐브 텍스쳐에 로드하여 저장한다. 이렇게 저장된 큐브 텍스쳐를 구 메시에 적용시키면 매번 미리 그리는 Prerender- 1pass에서 같은 작업을하고 두번째 패스인 일반 렌더에서 매핑시켜 거울 효과를 나타내느 환경 매핑 구가 완성이 된다.
- [낮과 밤, 환경매핑 결과] 
+ [낮과 밤, 환경매핑 결과]
+![image](https://github.com/user-attachments/assets/063cfdf4-915f-428e-91d1-3357cc8d3e6d)
+![image](https://github.com/user-attachments/assets/ce918109-fd8f-4ec1-accc-abcae016c444)
+
 [Environment Mapping TextRect]
 	거울 방 구현 : 거울방은 유니티에서 벽과 기둥메쉬를 가져와서 직접 크기를 정하여 건물 형태로 모델을 만들어 추출하였다. 그리고 각 벽면을 거울 처리를 해주었다. 처음에 uv값이 제대로 사각형 메쉬에 매핑되지 않아 은면 양면 판정을 하여 uv값이 제대로 적용되도록 하나씩 수정하였다. 
- 
+ ![image](https://github.com/user-attachments/assets/3983f751-bef8-477f-a85b-7f2a581db114)
+
 	또한 각 면마다 거울을 만들어 반사시키기 때문에, 카메라를 두어 해당 방향에 맞게끔 Up과 Look을 설정하여 해당 장면을 렌더링한 씬을 렌더타겟에 저장하여 텍스쳐2D형태로 저장하도록 하고 해당 텍스쳐를 그대로 매핑하여 사용하였다. 그 결과 환경매핑 구에 플레이어가 충돌처리가 일어난다면, 바로 해당 공간으로 가게되며 플레이어가 반사되는 거울방으로 가게된다. 가로크기를 일부러 늘려놨는데, 텍스쳐로 반사하는만큼 특정 길이를 늘리게되니까 그렇게 가로부분을 볼 때는 원하는 결과처럼 안나왔지만, 세로 부분을 보니까 원근감도 살아있고, 거울 형태로 만족스럽게 결과가 나온 것 같다.
  
- 
+ ![image](https://github.com/user-attachments/assets/5754e89d-268c-4759-8dd6-23894bebba33)
+![image](https://github.com/user-attachments/assets/d1dd9fea-1ba4-4344-8d9b-41bc98019455)
+
 [거울방에 들어온 모습]
 	TextureRectMesh에 uv값을 활용하여 일반 빌보드처럼 매핑 시킨 결과.,
 [추가 구현 내용]
 4.	Particle
 파티클은 이번 과제에서 기하 셰이더 사용을 위하여 추가해본 요소 중 하나이다. 처음에는 잘 렌더링이 안되었지만, 현재는 원하는 결과가 괜찮게 나온 것 같다. 
- 
+ ![image](https://github.com/user-attachments/assets/0c26e3ac-765b-4086-8b7a-f644dde235aa)
+
 -	파티클은 기존에 사용하지 않던 기하셰이더를 이용하여 정점 하나로 빌보드형태로 매핑시킬 수 있는 사각형 메시를 셰이더단계에서 제작하는 역할을 이번 코드에서 응용하였다. 파티클의 메시에는 총 3가지의 버퍼로, 초기 정점버퍼, 스트림 출력 정점 버퍼, 렌더링 정점버퍼로 나뉘어져있다. 초기 정점버퍼는 파티클 시스템의 시작 상태일 때 각 정점에 해당하는 정점의 정보를 저장하여 채우는 형태이며, 스트림 출력 정점버퍼는 파티클 시스템을 사용함에 따라 업데이트 또는 시뮬레이션 중에 사용되는 중간 버퍼이다. 이 때 새로운 위치나 속도 등을 계산하고 이 데이터를 스트림 출력 버퍼에 쓰는 역할을 한다.. 이렇게 스트림 출력 버퍼에 저장된 데이터는 다음 프레임에 사용되기 전에 렌더링 버퍼로 복사된다. 이렇게 중간버퍼가 있어 렌더링과 업데이트 단계를 분리하고 병렬로 수행하여 성능을 올릴 수 있게 된다.
 -	파티클도 환경매핑과 마찬가지로 미리 메쉬와 각 정점버퍼에 대해 정의를 해주어야 하므로 PreRender하는 부분이 있고 실제 Render과 PostRender로 버퍼를 닫는 연산도 이루어진다.
  
 [기하 셰이더 응용]
+![image](https://github.com/user-attachments/assets/616c4f6a-09b6-4e6c-8a47-3c5b3260ea1b)
 
  
 [씬에서 각 파티클 오브젝트 정점버퍼 결정하기 위한 생성자 인자]
+![image](https://github.com/user-attachments/assets/269576ba-2074-4d6b-9d58-8d484c4538c9)
 
 5.	Animation
 -	이번 과제에서 제일 핵심이었던 요소는 애니메이션 부분이었다. 애니메이션은 처음에 적용하는 방법을 잘 몰라 유니티 엔진에서부터 많이 해메었다. 그러다 하나의 Generic, 또는 Humanoid 스킨 메시 모델을 가지고 실험을 하다가, 모델에서 애니메이션 정보를 추출하여 사용하는 방법을 터득하였다. 처음에 각 모델에 대한 정보를 Rig에 들어가서 각 뼈마다의 가중치 개수를 4개로 설정하고, Humanoid, read/write를 설정해주었다. 그 이후 binary파일로 추출하는 단계에서 해당 모델에 맞는 애니메이션 컨트롤러를 추가해주고, 각 애니메이션 Set의 개수를 정한 후 애니메이션들을 직접 추출할 것들을 세팅해주었다.
 
-  
+  ![image](https://github.com/user-attachments/assets/12cbba3e-410b-445e-b87d-7dd6a63393c4)
+![image](https://github.com/user-attachments/assets/75d98e50-d493-4a28-9cfc-9bcffd50b868)
+
 [유니티에서 모델에 대한 애니메이션을 추출하기 위한 세팅 과정]
 	이후 플레이어의 생성자에서 받아온 애니메이션 Set의 개수를 저장한 후 AnimationController 생성자를 LoadGeometryAndAnimationFromFile로 읽어온 모델 객체와 애니메이션Set개수를 넘겨주어 생성한다. 그 결과 Animation Controller에서는 애니메이션 트랙의 수와 트랙 배열을 관리하고, 애니메이션 세트를 모델에서 가져와 설정한다. 또한 모델의 정보로 인해 루트 오브젝트를 설정하고, 스킨 메시의 수 및 배열도 초기화한다. 스킨 메시의 뼈공간 변환 등을 저장할 행렬에 대한 버퍼도 내부에서 관리한다. 이처럼 생성을 한 이후에는 각 AnimationSet을 SetTrackAnimationSet을 통해 배열 인덱스에 관리가 될 수 있도록 해야한다.  그렇게 수행을 하고 난 이후에는 각 키프레임에 대한 애니메이션이 Set이 되며 애니메이션이 이루어지는 동안에는 내부 처리로 시간에 따라 애니메이션 컨트롤러가 프레임 단위로 관리하게 된다.
- 
+ ![image](https://github.com/user-attachments/assets/4493154a-7d4b-426f-baad-5796f0f6cd38)
+
 [플레이어가 IDLE상태일 때 IDLE모션 애니메이션을 상시로 수행할 수 있도록]
 	각 애니메이션 Set을 원하는 입력키를 눌렀을 때 실행 할 수 있도록 구현하였으며, 애니메이션 종류에는 앞으로 가기, 옆으로 가기, 뒤로 가기, 뛰기, 공격모션 2개가 존재한다. 이를 각 콜백키가 눌렸을 때 발동될 수 있도록하였다.
 [AdvanceTime 함수]
 	이 함수를 통해 각 프레임에 저장되어 있는 변환 행렬과 뼈 공간 이전 행렬 및 오프셋 행렬들을 활용하여 결국 애니메이션 사이의 변환을 보간해주는 함수이며 애니메이션이 부드럽게 동작 할 수 있도록 만들어주는 함수이다. 시간을 추적하여 프레임 단위로 관리하여 애니메이션 트랙을 업데이트한다 GetSrt함수를 사용하여 시간에 따른 변환을 Interpolation하여 얻어온 이후 가중치를 적용하여 각 뼈대에 대한 변환 행렬을 누적시킨다.
 [셰이더 VS – 스킨 애니메이션]
- 
+ ![image](https://github.com/user-attachments/assets/ae9acbd7-282e-48c1-ba96-767de3941daf)
+
 	여기 VS에서는 상수버퍼로 넘겨온 BoneTransform과 BoneOffset을 각각 곱하여 가중치를 함께 반영하여 곱하는 것을 확인 할 수 있다. 각 본의 계층구조에 따른 오프셋 변환행렬로 상대적인 변환을 하여 각 본 공간으로 이동후 변환행렬을 가중치에 맞게 곱하여 셰이더에서 구해주는 것이 인상 깊었다.
 
 [결과]
+![image](https://github.com/user-attachments/assets/09fe1134-2d41-40ff-8191-67ca7356f86f)
+
  [공격 애니메이션 도중]
- 
+ ![image](https://github.com/user-attachments/assets/466a71b0-6cd8-4f55-b0d7-4987e57b5d90)
+
 [뛰는 모습]
 
 
