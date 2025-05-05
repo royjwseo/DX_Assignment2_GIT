@@ -832,6 +832,17 @@ void CGameObject::UpdateBoundingBox()
 
 }
 
+void CGameObject::SetOOBBSphere(float radius)
+{
+	m_xmCollisionSphere = BoundingSphere(XMFLOAT3(0.0f, 0.0f, 0.0f), radius);
+
+}
+
+void CGameObject::UpdateBoundingSphere()
+{
+	m_xmCollisionSphere.Center = GetPosition();
+}
+
 
 void CGameObject::AddRef()
 {
@@ -1905,6 +1916,7 @@ void CDynamicCubeMappingObject::OnPreRender(ID3D12GraphicsCommandList* pd3dComma
 		pd3dCommandList->OMSetRenderTargets(1, &m_pd3dRtvCPUDescriptorHandles[j], TRUE, &m_d3dDsvCPUDescriptorHandle);
 
 		pScene->Render(pd3dCommandList, m_ppCameras[j]);
+
 		pPlayer->Render(pd3dCommandList, m_ppCameras[j]);
 	}
 
@@ -2082,19 +2094,19 @@ void CDynamicRectMappingObject::OnPreRender(ID3D12GraphicsCommandList* pd3dComma
 	 XMFLOAT3 pxmf3LookAts;
 	 XMFLOAT3 pxmf3Ups;
 	if (face == 0) {
-		 pxmf3LookAts = XMFLOAT3(0.0f, 0.0f, 10.0f);
+		 pxmf3LookAts = XMFLOAT3(0.0f, 0.0f, 5.0f);
 		 pxmf3Ups = XMFLOAT3(0.0f, 1.0f, 0.0f);
 	}
 	else if (face == 1) {
-		pxmf3LookAts = XMFLOAT3(0.0f, 0.0f, -10.0f);
+		pxmf3LookAts = XMFLOAT3(0.0f, 0.0f, -5.0f);
 		pxmf3Ups = XMFLOAT3(0.0f, 1.0f, 0.0f);
 	}
 	else if (face == 2) {
-		pxmf3LookAts = XMFLOAT3(10.0f, 0.0f, 0.0f);
+		pxmf3LookAts = XMFLOAT3(5.0f, 0.0f, 0.0f);
 		pxmf3Ups = XMFLOAT3(0.0f, 1.0f, 0.0f);
 	}
 	else if (face == 3) {
-		pxmf3LookAts = XMFLOAT3(-10.0f, 0.0f, 0.0f);
+		pxmf3LookAts = XMFLOAT3(-5.0f, 0.0f, 0.0f);
 		pxmf3Ups = XMFLOAT3(0.0f, 1.0f, 0.0f);
 	}
 	
@@ -2116,3 +2128,4 @@ void CDynamicRectMappingObject::OnPreRender(ID3D12GraphicsCommandList* pd3dComma
 	
 	::SynchronizeResourceTransition(pd3dCommandList, m_ppMaterials[0]->m_pTexture->GetResource(0), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ);
 }
+

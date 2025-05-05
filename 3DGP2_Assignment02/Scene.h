@@ -15,6 +15,12 @@
 #define DIRECTIONAL_LIGHT	3
 
 
+enum class SceneMode{
+	SCENE_NO_MIRROR,
+	SCENE_WITH_MIRROR
+};
+
+
 struct LIGHT
 {
 	XMFLOAT4				m_xmf4Ambient;
@@ -98,6 +104,8 @@ public:
 	
 	void RenderBuildingAlone(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 
+	void CheckCollisionToEnvironmentMapping();
+
 	void OnPreRender(ID3D12Device* pd3dDevice, ID3D12CommandQueue* pd3dCommandQueue, ID3D12Fence* pd3dFence, HANDLE hFenceEvent);
 	void RenderParticle(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera);
 //	void UpdateVertexBufferPosition(XMFLOAT3 pos);
@@ -112,8 +120,14 @@ public:
 	CPlayer* m_pPlayer = NULL;
 
 public:
-	
 
+	SceneMode scene_Mode;
+	void ChangeSceneMode(SceneMode Mode) {
+		scene_Mode = Mode;
+	}
+	SceneMode GetSceneMode() {
+		return scene_Mode;
+	}
 	ID3D12RootSignature* m_pd3dGraphicsRootSignature = NULL;
 
 	

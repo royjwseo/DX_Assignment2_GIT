@@ -380,6 +380,11 @@ public:
 	CMesh* m_pMesh = NULL;
 	BoundingOrientedBox				m_xmCollision;
 	virtual void UpdateBoundingBox();
+	BoundingSphere					m_xmCollisionSphere;
+
+	void SetOOBBSphere(float radius);
+	virtual void UpdateBoundingSphere();
+
 	void SetOOBB(float fWidth, float fHeight, float fDepth);
 	int								m_nMaterials = 0;
 	CMaterial** m_ppMaterials = NULL;

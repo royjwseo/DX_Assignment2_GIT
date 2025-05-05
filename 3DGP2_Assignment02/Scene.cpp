@@ -196,7 +196,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 {
 	m_pd3dGraphicsRootSignature = CreateGraphicsRootSignature(pd3dDevice);
 
-	
+	scene_Mode = SceneMode::SCENE_NO_MIRROR;
 
 	m_pDescriptorHeap = new CDescriptorHeap();
 	CreateCbvSrvDescriptorHeaps(pd3dDevice, 0, 100); //총알(4) 건물들3가지(9) 윈드밀(3) 탱크(5), 돌식물(2) 나무(4) 플레이어 (5)
@@ -230,7 +230,7 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_nEnvironmentMappingRectShaders = 1;
 	m_ppEnvironmentMappingRectShaders = new CDynamicRectMappingShader * [m_nEnvironmentMappingShaders];
 	
-	m_ppEnvironmentMappingRectShaders[0] = new CDynamicRectMappingShader(512);
+	m_ppEnvironmentMappingRectShaders[0] = new CDynamicRectMappingShader(2048);
 	m_ppEnvironmentMappingRectShaders[0]->CreateShader(pd3dDevice, m_pd3dGraphicsRootSignature,0);
 	m_ppEnvironmentMappingRectShaders[0]->BuildObjects(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature,m_pTerrain);
 
@@ -243,8 +243,8 @@ void CScene::BuildObjects(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* p
 	m_ppParticleObjects[3] = new CParticleObject(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, XMFLOAT3(801.f, 400.f, 1444.f), XMFLOAT3(0.0f, 60.0f, -60.0f), 0.0f, XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(8.0f, 8.0f), MAX_PARTICLES);
 
 
-	Building=CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/WallBuilding.bin", NULL);
-	Building->SetPosition(2400, 400, 2890);
+	Building=CGameObject::LoadGeometryFromFile(pd3dDevice, pd3dCommandList, m_pd3dGraphicsRootSignature, "Model/WallBuildingLong.bin", NULL);
+	Building->SetPosition(3629.6, 395.2, 680.2);
 
 	BuildDefaultLightsAndMaterials();
 	CreateShaderVariables(pd3dDevice, pd3dCommandList);
@@ -615,6 +615,7 @@ void CScene::AnimateObjects(float fTimeElapsed)
 		m_pLights->m_pLights[1].m_xmf3Direction = m_pPlayer->GetLookVector();
 		m_pLights->m_pLights[2].m_xmf4Diffuse = XMFLOAT4(DirectionalLightPower[0], DirectionalLightPower[1], DirectionalLightPower[2], 1.0f);
 	}
+	CheckCollisionToEnvironmentMapping();
 }
 
 //void CScene::UpdateVertexBufferPosition(XMFLOAT3 pos) {
@@ -670,22 +671,44 @@ void CScene::Render(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera
 
 	m_pPlayer->Render(pd3dCommandList, pCamera);
 
-	for (int i = 0; i < m_nEnvironmentMappingShaders; i++)
-	{
-		m_ppEnvironmentMappingShaders[i]->Render(pd3dCommandList, pCamera);
-	}
-	for (int i = 0; i < m_nEnvironmentMappingRectShaders; i++)
-	{
-		m_ppEnvironmentMappingRectShaders[i]->Render(pd3dCommandList, pCamera);
-	}
+	if (scene_Mode == SceneMode::SCENE_WITH_MIRROR)
+		if (Building) Building->Render(pd3dCommandList, pCamera);
 
+	if (scene_Mode != SceneMode::SCENE_WITH_MIRROR) {
+		for (int i = 0; i < m_nEnvironmentMappingShaders; i++)
+		{
+			m_ppEnvironmentMappingShaders[i]->Render(pd3dCommandList, pCamera);
+		}
+	}
+	if (scene_Mode == SceneMode::SCENE_WITH_MIRROR) {
+		for (int i = 0; i < m_nEnvironmentMappingRectShaders; i++)
+		{
+			m_ppEnvironmentMappingRectShaders[i]->Render(pd3dCommandList, pCamera);
+		}
+	}
 
 	
 	//for (int i = 0; i < m_nShaders; i++) if (m_ppShaders[i]) m_ppShaders[i]->Render(pd3dCommandList, pCamera);
 }
 
 void CScene::RenderBuildingAlone(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera) {
-	if (Building) Building->Render(pd3dCommandList, pCamera);
+	/*if(scene_Mode==SceneMode::SCENE_WITH_MIRROR)
+	if (Building) Building->Render(pd3dCommandList, pCamera);*/
+}
+
+void CScene::CheckCollisionToEnvironmentMapping()
+{
+	for (int i = 0; i < m_nEnvironmentMappingShaders; i++) {
+		for (int j = 0; j < m_ppEnvironmentMappingShaders[i]->m_nDynamicCubes; j++) {
+			if (m_ppEnvironmentMappingShaders[i]->m_ppDynamicCubes[j]->m_xmCollisionSphere.Intersects(m_pPlayer->m_xmCollision))
+			{
+
+				XMFLOAT3 cur_pos = XMFLOAT3(3588.9, 393.7, 695.6);
+				m_pPlayer->SetPosition(cur_pos);
+				scene_Mode = SceneMode::SCENE_WITH_MIRROR;
+			}	
+		}
+	}
 }
 
 //void CScene::RenderEnvironmentMappingSpheres(ID3D12GraphicsCommandList* pd3dCommandList, CCamera* pCamera) {

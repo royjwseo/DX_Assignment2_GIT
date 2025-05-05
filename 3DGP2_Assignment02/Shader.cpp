@@ -799,7 +799,7 @@ void CDynamicCubeMappingShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12Gra
 		m_ppDynamicCubes[i] = new CDynamicCubeMappingObject(pd3dDevice, pd3dCommandList, m_nCubeMapSize, d3dDsvCPUDescriptorHandle, d3dRtvCPUDescriptorHandle, this);
 
 		m_ppDynamicCubes[i]->SetMesh(0, pMeshIlluminated);
-
+		m_ppDynamicCubes[i]->SetOOBBSphere(100.f);
 		float xPosition = xmf2TerrainCenter.x + ((i + 1) * 150.0f) * ((i % 2) ? +1.0f : -1.0f);
 		float zPosition = xmf2TerrainCenter.y + ((i + 1) * 150.0f) * ((i % 2) ? +1.0f : -1.0f);
 		float fHeight = pTerrain->GetHeight(xPosition, zPosition);
@@ -880,6 +880,7 @@ void CDynamicCubeMappingShader::AnimateObjects(float fTimeElapsed)
 	for (int j = 0; j < m_nDynamicCubes; j++)
 	{
 		m_ppDynamicCubes[j]->Animate(fTimeElapsed);
+		m_ppDynamicCubes[j]->UpdateBoundingSphere();
 	}
 }
 
@@ -1112,11 +1113,11 @@ void CDynamicRectMappingShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12Gra
 	CTexturedRectMeshWithOneVertex* pTexturedRect2[4];
 	for (int i = 0; i < 2; i++) {
 		
-		pTexturedRect2[i] = new CTexturedRectMeshWithOneVertex(pd3dDevice, pd3dCommandList, 150, 150, 0, 0, 0, i*0.1);
+		pTexturedRect2[i] = new CTexturedRectMeshWithOneVertex(pd3dDevice, pd3dCommandList, 560, 200, 0, 0, 0, i*0.1);
 		//0번이 +z  //1번이 -z
 	}
 	for (int i = 2; i < 4; i++) {
-		pTexturedRect2[i] = new CTexturedRectMeshWithOneVertex(pd3dDevice, pd3dCommandList, 0, 150, 150, (i-2)*0.1, 0, 0);
+		pTexturedRect2[i] = new CTexturedRectMeshWithOneVertex(pd3dDevice, pd3dCommandList, 0, 200, 350, (i-2)*0.1, 0, 0);
 		//3번이  +x , 4번이 -x
 	}
 	CHeightMapTerrain* pTerrain = (CHeightMapTerrain*)pContext;
@@ -1128,10 +1129,10 @@ void CDynamicRectMappingShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12Gra
 
 		m_ppDynamicRects[i]->SetMesh(0, pTexturedRect2[i]);
 	//	m_ppDynamicRects[i]->SetChild(pBuilding);
-			float xPosition = 2240; 
-			float zPosition = 2740+i*155;
+			float xPosition = 3629.6; 
+			float zPosition = 525+i*300;
 			float fHeight = pTerrain->GetHeight(xPosition, zPosition);
-			m_ppDynamicRects[i]->SetPosition(xPosition, 450, zPosition);
+			m_ppDynamicRects[i]->SetPosition(xPosition, 495.2, zPosition);
 
 		d3dDsvCPUDescriptorHandle.ptr += ::gnDsvDescriptorIncrementSize;
 		d3dRtvCPUDescriptorHandle.ptr += (::gnRtvDescriptorIncrementSize);
@@ -1142,10 +1143,10 @@ void CDynamicRectMappingShader::BuildObjects(ID3D12Device* pd3dDevice, ID3D12Gra
 
 		m_ppDynamicRects[i]->SetMesh(0, pTexturedRect2[i]);
 		//	m_ppDynamicRects[i]->SetChild(pBuilding);
-		float xPosition = 2165+(i-2)*155; //2315
-		float zPosition = 2815 ; 
+		float xPosition = 3360+(i-2)*535; //2315
+		float zPosition = 680.2 ; 
 		float fHeight = pTerrain->GetHeight(xPosition, zPosition);
-		m_ppDynamicRects[i]->SetPosition(xPosition, 450, zPosition);
+		m_ppDynamicRects[i]->SetPosition(xPosition, 495.2, zPosition);
 
 		d3dDsvCPUDescriptorHandle.ptr += ::gnDsvDescriptorIncrementSize;
 		d3dRtvCPUDescriptorHandle.ptr += (::gnRtvDescriptorIncrementSize);

@@ -210,7 +210,7 @@ protected:
 
 	ID3D12DescriptorHeap* m_pd3dRtvDescriptorHeap = NULL;
 	ID3D12DescriptorHeap* m_pd3dDsvDescriptorHeap = NULL;
-protected:
+public:
 	CGameObject** m_ppDynamicCubes = 0;
 	int								m_nDynamicCubes = 0;
 };

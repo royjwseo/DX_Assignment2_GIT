@@ -333,7 +333,7 @@ CTankPlayer::CTankPlayer(ID3D12Device* pd3dDevice, ID3D12GraphicsCommandList* pd
 
 	/*m_pShader = new CSkinnedAnimationStandardShader();
 	m_pShader->CreateShader(pd3dDevice, pd3dGraphicsRootSignature, 0);*/
-
+	SetOOBB(10, 15, 10);
 	if (pAngrybotModel) delete pAngrybotModel;
 }
 CTankPlayer:: ~CTankPlayer() {
